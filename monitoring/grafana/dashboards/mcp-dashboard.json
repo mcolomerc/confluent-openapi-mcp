@@ -1,0 +1,159 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "MCP Server Monitoring",
+    "description": "Monitoring dashboard for MCP Server resource usage",
+    "tags": ["mcp", "monitoring", "go"],
+    "timezone": "browser",
+    "refresh": "5s",
+    "time": {
+      "from": "now-30m",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Memory Usage",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "mcp_memory_alloc_bytes / 1024 / 1024",
+            "legendFormat": "Allocated (MB)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "decbytes",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 50},
+                {"color": "red", "value": 100}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Goroutines",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "mcp_goroutines_total",
+            "legendFormat": "Goroutines"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 50},
+                {"color": "red", "value": 100}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "GC Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(mcp_gc_runs_total[5m]) * 60",
+            "legendFormat": "GC/min"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 5},
+                {"color": "red", "value": 10}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0}
+      },
+      {
+        "id": 4,
+        "title": "CPU Cores",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "mcp_cpu_cores",
+            "legendFormat": "Cores"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {
+              "mode": "value"
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0}
+      },
+      {
+        "id": 5,
+        "title": "Memory Over Time",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "mcp_memory_alloc_bytes / 1024 / 1024",
+            "legendFormat": "Allocated (MB)"
+          },
+          {
+            "expr": "mcp_memory_sys_bytes / 1024 / 1024",
+            "legendFormat": "System (MB)"
+          },
+          {
+            "expr": "mcp_memory_heap_alloc_bytes / 1024 / 1024",
+            "legendFormat": "Heap (MB)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "decbytes"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 6,
+        "title": "Goroutines Over Time",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "mcp_goroutines_total",
+            "legendFormat": "Goroutines"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      }
+    ]
+  }
+}

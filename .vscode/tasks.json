@@ -1,0 +1,211 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Dev: Start Auto-Reload Server",
+            "type": "shell",
+            "command": "./scripts/dev-start.sh",
+            "group": "build",
+            "isBackground": true,
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": [
+                {
+                    "pattern": {
+                        "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+                        "file": 1,
+                        "line": 2,
+                        "column": 3,
+                        "severity": 4,
+                        "message": 5
+                    }
+                }
+            ],
+            "runOptions": {
+                "runOn": "folderOpen"
+            },
+            "dependsOn": "Build Server"
+        },
+        {
+            "label": "Dev: Start MCP Server",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Build Server",
+                "MCP: Restart Servers"
+            ]
+        },
+        {
+            "label": "MCP: Restart Servers",
+            "type": "shell",
+            "command": "./scripts/restart-mcp.sh",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Dev: Restart MCP Server",
+            "dependsOrder": "sequence", 
+            "dependsOn": [
+                "Build Server",
+                "MCP: Restart Servers"
+            ],
+            "group": "build",
+            "runOptions": {
+                "runOn": "folderOpen"
+            }
+        },
+        {
+            "label": "Dev: Start Watch Mode",
+            "type": "shell",
+            "command": "make",
+            "args": ["watch"],
+            "group": "build",
+            "isBackground": true,
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            }
+        },
+        {
+            "label": "Dev: Start Simple Mode",
+            "type": "shell",
+            "command": "make",
+            "args": ["dev-simple"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Dev: Stop Server",
+            "type": "shell",
+            "command": "./scripts/dev-stop.sh",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Dev: Restart Server",
+            "type": "shell",
+            "command": "make",
+            "args": ["restart"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Build Server",
+            "type": "shell",
+            "command": "make",
+            "args": ["build"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": "$go"
+        },
+        {
+            "label": "Run Tests",
+            "type": "shell",
+            "command": "make",
+            "args": ["test"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Run Tests with Coverage",
+            "type": "shell",
+            "command": "make",
+            "args": ["test-coverage"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Watch Tests",
+            "type": "shell",
+            "command": "make",
+            "args": ["test-watch"],
+            "group": "test",
+            "isBackground": true,
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Install Dev Tools",
+            "type": "shell",
+            "command": "make",
+            "args": ["install-tools"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Build and Restart All Servers",
+            "type": "shell",
+            "command": "make",
+            "args": ["build-mcp"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        }
+    ]
+}

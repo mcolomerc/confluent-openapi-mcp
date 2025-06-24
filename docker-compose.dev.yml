@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  mcp-server-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - BUILD_ENV=development
+    container_name: confluent-mcp-server-dev
+    environment:
+      # Load from .env file
+      - CONFLUENT_ENV_ID
+      - CONFLUENT_CLOUD_API_KEY
+      - CONFLUENT_CLOUD_API_SECRET
+      - BOOTSTRAP_SERVERS
+      - KAFKA_API_KEY
+      - KAFKA_API_SECRET
+      - KAFKA_REST_ENDPOINT
+      - KAFKA_CLUSTER_ID
+      - FLINK_ORG_ID
+      - FLINK_REST_ENDPOINT
+      - FLINK_ENV_NAME
+      - FLINK_DATABASE_NAME
+      - FLINK_API_KEY
+      - FLINK_API_SECRET
+      - FLINK_COMPUTE_POOL_ID
+      - SCHEMA_REGISTRY_API_KEY
+      - SCHEMA_REGISTRY_API_SECRET
+      - SCHEMA_REGISTRY_ENDPOINT
+      - TABLEFLOW_API_KEY
+      - TABLEFLOW_API_SECRET
+      - LOG=DEBUG
+      - PROMPTS_FOLDER=/app/prompts
+      - OPENAPI_SPEC_URL
+    
+    ports:
+      - "8080:8080"
+    
+    # Mount source code for development
+    volumes:
+      - ./prompts:/app/prompts:ro
+      - ./api-spec:/app/api-spec:ro
+      - ./logs:/app/logs
+    
+    # Development settings
+    tty: true
+    stdin_open: true
+    
+    # Restart policy for development
+    restart: unless-stopped

@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: confluent-mcp-server
+    environment:
+      # Confluent Cloud Configuration
+      - CONFLUENT_ENV_ID=${CONFLUENT_ENV_ID}
+      - CONFLUENT_CLOUD_API_KEY=${CONFLUENT_CLOUD_API_KEY}
+      - CONFLUENT_CLOUD_API_SECRET=${CONFLUENT_CLOUD_API_SECRET}
+      
+      # Kafka Configuration
+      - BOOTSTRAP_SERVERS=${BOOTSTRAP_SERVERS}
+      - KAFKA_API_KEY=${KAFKA_API_KEY}
+      - KAFKA_API_SECRET=${KAFKA_API_SECRET}
+      - KAFKA_REST_ENDPOINT=${KAFKA_REST_ENDPOINT}
+      - KAFKA_CLUSTER_ID=${KAFKA_CLUSTER_ID}
+      
+      # Flink Configuration
+      - FLINK_ORG_ID=${FLINK_ORG_ID}
+      - FLINK_REST_ENDPOINT=${FLINK_REST_ENDPOINT}
+      - FLINK_ENV_NAME=${FLINK_ENV_NAME}
+      - FLINK_DATABASE_NAME=${FLINK_DATABASE_NAME}
+      - FLINK_API_KEY=${FLINK_API_KEY}
+      - FLINK_API_SECRET=${FLINK_API_SECRET}
+      - FLINK_COMPUTE_POOL_ID=${FLINK_COMPUTE_POOL_ID}
+      
+      # Schema Registry Configuration
+      - SCHEMA_REGISTRY_API_KEY=${SCHEMA_REGISTRY_API_KEY}
+      - SCHEMA_REGISTRY_API_SECRET=${SCHEMA_REGISTRY_API_SECRET}
+      - SCHEMA_REGISTRY_ENDPOINT=${SCHEMA_REGISTRY_ENDPOINT}
+      
+      # TableFlow Configuration
+      - TABLEFLOW_API_KEY=${TABLEFLOW_API_KEY}
+      - TABLEFLOW_API_SECRET=${TABLEFLOW_API_SECRET}
+      
+      # Optional Configuration
+      - LOG=${LOG:-info}
+      - PROMPTS_FOLDER=${PROMPTS_FOLDER:-/app/prompts}
+      - OPENAPI_SPEC_URL=${OPENAPI_SPEC_URL}
+    
+    ports:
+      - "8080:8080"
+    
+    # Mount configuration if using external .env file
+    volumes:
+      - ./prompts:/app/prompts:ro
+      - ./api-spec:/app/api-spec:ro
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/tools"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'

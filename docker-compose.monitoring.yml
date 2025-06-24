@@ -1,0 +1,134 @@
+version: '3.8'
+
+services:
+  # Your MCP Server with monitoring enabled
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: confluent-mcp-server-monitored
+    environment:
+      # Confluent Cloud Configuration
+      - CONFLUENT_ENV_ID=${CONFLUENT_ENV_ID}
+      - CONFLUENT_CLOUD_API_KEY=${CONFLUENT_CLOUD_API_KEY}
+      - CONFLUENT_CLOUD_API_SECRET=${CONFLUENT_CLOUD_API_SECRET}
+      
+      # Kafka Configuration
+      - BOOTSTRAP_SERVERS=${BOOTSTRAP_SERVERS}
+      - KAFKA_API_KEY=${KAFKA_API_KEY}
+      - KAFKA_API_SECRET=${KAFKA_API_SECRET}
+      - KAFKA_REST_ENDPOINT=${KAFKA_REST_ENDPOINT}
+      - KAFKA_CLUSTER_ID=${KAFKA_CLUSTER_ID}
+      
+      # Flink Configuration
+      - FLINK_ORG_ID=${FLINK_ORG_ID}
+      - FLINK_REST_ENDPOINT=${FLINK_REST_ENDPOINT}
+      - FLINK_ENV_NAME=${FLINK_ENV_NAME}
+      - FLINK_DATABASE_NAME=${FLINK_DATABASE_NAME}
+      - FLINK_API_KEY=${FLINK_API_KEY}
+      - FLINK_API_SECRET=${FLINK_API_SECRET}
+      - FLINK_COMPUTE_POOL_ID=${FLINK_COMPUTE_POOL_ID}
+      
+      # Schema Registry Configuration
+      - SCHEMA_REGISTRY_API_KEY=${SCHEMA_REGISTRY_API_KEY}
+      - SCHEMA_REGISTRY_API_SECRET=${SCHEMA_REGISTRY_API_SECRET}
+      - SCHEMA_REGISTRY_ENDPOINT=${SCHEMA_REGISTRY_ENDPOINT}
+      
+      # TableFlow Configuration
+      - TABLEFLOW_API_KEY=${TABLEFLOW_API_KEY}
+      - TABLEFLOW_API_SECRET=${TABLEFLOW_API_SECRET}
+      
+      # Optional Configuration
+      - LOG=${LOG:-info}
+      - PROMPTS_FOLDER=${PROMPTS_FOLDER:-/app/prompts}
+      - OPENAPI_SPEC_URL=${OPENAPI_SPEC_URL}
+    
+    ports:
+      - "8080:8080"
+    
+    # Command to start with monitoring enabled
+    command: ["./bin/mcp-server", "-mode=http", "-monitor=30s"]
+    
+    volumes:
+      - ./prompts:/app/prompts:ro
+      - ./api-spec:/app/api-spec:ro
+    
+    # Health check updated to use health endpoint
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    restart: unless-stopped
+    
+    # Add labels for Prometheus service discovery
+    labels:
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=8080"
+      - "prometheus.io/path=/metrics/prometheus"
+    
+    networks:
+      - monitoring
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  # Optional: Node Exporter for system metrics
+  node-exporter:
+    image: prom/node-exporter:v1.6.1
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    command:
+      - '--path.rootfs=/host'
+    volumes:
+      - '/:/host:ro,rslave'
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+networks:
+  monitoring:
+    driver: bridge
+
+volumes:
+  prometheus_data:
+  grafana_data:

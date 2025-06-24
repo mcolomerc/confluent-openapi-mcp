@@ -1,0 +1,46 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+DEVELOPMENT.md
+*.md
+
+# Build outputs
+bin/
+dist/
+build/
+
+# Development files
+.env*
+!.env.example
+.vscode/
+.idea/
+
+# Test files
+*_test.go
+test_*.go
+testdata/
+
+# Temporary files
+*.tmp
+*.log
+.DS_Store
+Thumbs.db
+
+# Node.js (if any)
+node_modules/
+npm-debug.log*
+
+# Go specific
+vendor/
+
+# Scripts (if not needed in container)
+scripts/
+Makefile
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+.dockerignore

@@ -1,0 +1,17 @@
+{
+    "servers": {
+        "confluent": {
+            "type": "stdio",
+            "command": "./bin/mcp-server",
+            "args": [ 
+                "--mode", "stdio",
+                "--env", "${workspaceFolder}/.env"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "DISABLE_RESOURCE_DISCOVERY": "true",
+                "LOG": "INFO"
+            }
+        }
+    }
+}

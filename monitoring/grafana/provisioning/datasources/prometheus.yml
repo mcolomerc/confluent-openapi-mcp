@@ -1,0 +1,11 @@
+# Grafana datasource provisioning configuration
+# This file is valid Grafana YAML - ignore VS Code YAML linting errors
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
