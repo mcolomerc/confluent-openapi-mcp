@@ -20,14 +20,14 @@ import (
 
 // MCPServer wraps the library's MCP server with our business logic
 type MCPServer struct {
-	tools              []tools.Tool
-	config             *config.Config
-	spec               *openapi.OpenAPISpec
-	telemetrySpec      *openapi.OpenAPISpec
-	promptManager      *prompts.PromptManager
-	mcpServer          *server.MCPServer   // Core MCP server from library
-	resourceManager    *resource.Manager   // Resource management
-	monitor            *monitoring.Monitor // Resource monitoring
+	tools           []tools.Tool
+	config          *config.Config
+	spec            *openapi.OpenAPISpec
+	telemetrySpec   *openapi.OpenAPISpec
+	promptManager   *prompts.PromptManager
+	mcpServer       *server.MCPServer   // Core MCP server from library
+	resourceManager *resource.Manager   // Resource management
+	monitor         *monitoring.Monitor // Resource monitoring
 }
 
 // NewCompositeServer creates an MCPServer with provided config, main spec, telemetry spec and semanticTools

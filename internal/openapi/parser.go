@@ -200,7 +200,7 @@ func LoadTelemetrySpec() (*OpenAPISpec, error) {
 		}
 		return ParseOpenAPISpecBytesYAML(body)
 	}
-	
+
 	// Determine if it's YAML or JSON based on file extension
 	if strings.HasSuffix(strings.ToLower(specPath), ".yaml") || strings.HasSuffix(strings.ToLower(specPath), ".yml") {
 		return ParseOpenAPISpecYAML(specPath)

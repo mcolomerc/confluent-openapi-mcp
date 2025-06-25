@@ -681,13 +681,13 @@ func GenerateSemanticToolsFromBothSpecs(mainSpec openapi.OpenAPISpec, telemetryS
 func GenerateSemanticToolsForTelemetry(spec openapi.OpenAPISpec) ([]Tool, error) {
 	// Initialize the semantic registry for telemetry
 	registryMutex.Lock()
-	
+
 	// Create a separate registry for telemetry tools
 	telemetryRegistry := &SemanticToolRegistry{
 		Mappings: make(map[string]map[string]EndpointMapping),
 		Spec:     &spec,
 	}
-	
+
 	// Initialize action maps - for telemetry, we mainly focus on "get" and "list" operations
 	telemetryActions := []string{"get", "list"}
 	for _, action := range telemetryActions {
@@ -718,12 +718,12 @@ func GenerateSemanticToolsForTelemetry(spec openapi.OpenAPISpec) ([]Tool, error)
 					OptionalParams: []string{},
 				}
 				telemetryRegistry.Mappings[action][resource] = mapping
-				
+
 				logger.Debug("Mapped telemetry action '%s' for resource '%s' to %s %s\n", action, resource, op.Method, path)
 			}
 		}
 	}
-	
+
 	registryMutex.Unlock()
 
 	// Generate tools from the telemetry registry
@@ -768,11 +768,11 @@ func determineSemanticActionForTelemetry(method string, path string) string {
 // generateParametersFromPath extracts parameters from a path pattern
 func generateParametersFromPath(path string) map[string]interface{} {
 	parameters := make(map[string]interface{})
-	
+
 	// Basic structure for telemetry parameters
 	properties := make(map[string]interface{})
 	required := []string{}
-	
+
 	// Add dataset parameter if path contains {dataset}
 	if strings.Contains(path, "{dataset}") {
 		properties["dataset"] = map[string]interface{}{
@@ -781,7 +781,7 @@ func generateParametersFromPath(path string) map[string]interface{} {
 		}
 		required = append(required, "dataset")
 	}
-	
+
 	// Add other common telemetry parameters
 	if strings.Contains(path, "/query") {
 		properties["parameters"] = map[string]interface{}{
@@ -789,12 +789,12 @@ func generateParametersFromPath(path string) map[string]interface{} {
 			"description": "Parameters specific to the chosen resource and action",
 		}
 	}
-	
+
 	parameters["type"] = "object"
 	parameters["properties"] = properties
 	if len(required) > 0 {
 		parameters["required"] = required
 	}
-	
+
 	return parameters
 }

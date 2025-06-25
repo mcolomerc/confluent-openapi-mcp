@@ -32,11 +32,12 @@ It has multiple lines.`,
 
 	// Create a test config with the prompts folder
 	cfg := &config.Config{
-		PromptsFolder:           tempDir,
-		OpenAPISpecURL:          "http://test.com/spec.json",
-		ConfluentEnvID:          "env-test",
-		ConfluentCloudAPIKey:    "test-key",
-		ConfluentCloudAPISecret: "test-secret",
+		PromptsFolder:                tempDir,
+		OpenAPISpecURL:               "http://test.com/spec.json",
+		TelemetryOpenAPISpecURL:      "http://test.com/telemetry-spec.yaml",
+		ConfluentEnvID:               "env-test",
+		ConfluentCloudAPIKey:         "test-key",
+		ConfluentCloudAPISecret:      "test-secret",
 		BootstrapServers:        "test-servers",
 		KafkaAPIKey:             "test-key",
 		KafkaAPISecret:          "test-secret",
@@ -56,7 +57,8 @@ It has multiple lines.`,
 
 	// Create a server
 	spec := &openapi.OpenAPISpec{}
-	server := NewCompositeServer(cfg, spec, []tools.Tool{})
+	telemetrySpec := &openapi.OpenAPISpec{}
+	server := NewCompositeServer(cfg, spec, telemetrySpec, []tools.Tool{})
 
 	t.Run("GetPrompts returns all prompts", func(t *testing.T) {
 		prompts := server.GetPrompts()

@@ -2,10 +2,10 @@
 You are a Kafka expert helping analyze and troubleshoot Kafka topics in Confluent Cloud.
 
 Please analyze the following Kafka topic and provide insights about:
-
 1. List Topics from the Kafka cluster 
 2. Group Topics by relevant configurations: 
-   2.1 Number of partitions
+   2.1 Number of partitions: 
+     2.1.1 Consider the Cluster type https://docs.confluent.io/cloud/current/clusters/cluster-types.html#cluster-limit-comparison to see if the number of partitions is appropriate for the cluster type.
    2.2 Retention period
    2.3 Retention bytes
    2.4 Cleanup policy
@@ -20,7 +20,7 @@ Please analyze the following Kafka topic and provide insights about:
    4.4 Identify topics with high producer error rates.
  
 Build a summary report and recommendations for optimizing the Kafka topic configurations based on the analysis.
-Guidelines: 
+Topic naming convention guidelines: 
  - https://www.datastreamhouse.com/blog/kafka-topic-naming-conventions-5-recommendations-with-examples
  - https://cnr.sh/posts/2017-08-29-how-paint-bike-shed-kafka-topic-naming-conventions/
  
