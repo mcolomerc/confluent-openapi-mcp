@@ -284,9 +284,8 @@ prompts/
 
 The server comes with several example prompts:
 
-- **`kafka-topic-analysis`**: Guide for analyzing Kafka topic configurations and performance
-- **`environment-setup`**: Step-by-step environment configuration instructions
-- **`schema-registry-guide`**: Best practices for Schema Registry management
+- **`kafka-cluster-repo-usage`**: Guide for analyzing Kafka cluster usage.
+ 
 
 ### HTTP Endpoints
 
