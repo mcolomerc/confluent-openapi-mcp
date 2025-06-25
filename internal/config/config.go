@@ -15,6 +15,7 @@ import (
 // Use this struct instead of accessing os.Getenv directly
 type Config struct {
 	OpenAPISpecURL          string
+	TelemetryOpenAPISpecURL string
 	ConfluentEnvID          string
 	ConfluentCloudAPIKey    string
 	ConfluentCloudAPISecret string
@@ -46,6 +47,7 @@ func LoadConfig(path string) (*Config, error) {
 
 	cfg := &Config{
 		OpenAPISpecURL:          os.Getenv("OPENAPI_SPEC_URL"),
+		TelemetryOpenAPISpecURL: os.Getenv("TELEMETRY_OPENAPI_SPEC_URL"),
 		ConfluentEnvID:          os.Getenv("CONFLUENT_ENV_ID"),
 		ConfluentCloudAPIKey:    os.Getenv("CONFLUENT_CLOUD_API_KEY"),
 		ConfluentCloudAPISecret: os.Getenv("CONFLUENT_CLOUD_API_SECRET"),

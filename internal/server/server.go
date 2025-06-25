@@ -23,14 +23,15 @@ type MCPServer struct {
 	tools           []tools.Tool
 	config          *config.Config
 	spec            *openapi.OpenAPISpec
+	telemetrySpec   *openapi.OpenAPISpec
 	promptManager   *prompts.PromptManager
 	mcpServer       *server.MCPServer   // Core MCP server from library
 	resourceManager *resource.Manager   // Resource management
 	monitor         *monitoring.Monitor // Resource monitoring
 }
 
-// NewCompositeServer creates an MCPServer with provided config, spec and semanticTools
-func NewCompositeServer(cfg *config.Config, spec *openapi.OpenAPISpec, semanticTools []tools.Tool) *MCPServer {
+// NewCompositeServer creates an MCPServer with provided config, main spec, telemetry spec and semanticTools
+func NewCompositeServer(cfg *config.Config, spec *openapi.OpenAPISpec, telemetrySpec *openapi.OpenAPISpec, semanticTools []tools.Tool) *MCPServer {
 	// Initialize prompt manager
 	promptManager := prompts.NewPromptManager(cfg.PromptsFolder)
 
@@ -59,6 +60,7 @@ func NewCompositeServer(cfg *config.Config, spec *openapi.OpenAPISpec, semanticT
 		tools:         semanticTools,
 		config:        cfg,
 		spec:          spec,
+		telemetrySpec: telemetrySpec,
 		promptManager: promptManager,
 		mcpServer:     mcpServer,
 	}

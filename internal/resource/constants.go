@@ -1,5 +1,7 @@
 package resource
 
+import "strings"
+
 // URI and Protocol Constants
 const (
 	// URI scheme for Confluent resources
@@ -28,5 +30,30 @@ var ResourceTypeIDMappings = map[string][]string{
 	"service-accounts": {"service_account_id", "id"},
 }
 
+// Resource types that should be excluded from MCP resource registration
+// These are typically sub-resources, configurations, or metadata that are not standalone resources
+var ExcludedResourceTypes = []string{
+	"configs",         // Topic/cluster configurations - these are properties, not resources
+	"mode",            // Schema registry compatibility mode - metadata, not a resource
+	"config",          // Global configuration - metadata, not a resource
+	"compatibility",   // Compatibility settings - metadata, not a resource
+	"versions",        // Schema versions - sub-resources of subjects
+	"status",          // Status information - metadata, not a resource
+	"offsets",         // Consumer group offsets - metadata, not a resource
+	"lags",            // Consumer group lag information - metadata, not a resource
+	"partitions",      // Topic partitions - sub-resources of topics
+	"default-configs", // Default configurations - metadata templates
+}
+
 // Generic identifier field patterns for fallback
 var GenericIDFieldPatterns = []string{"id", "name", "_id", "_name"}
+
+// IsExcludedResourceType checks if a resource type should be excluded from MCP resource registration
+func IsExcludedResourceType(resourceType string) bool {
+	for _, excluded := range ExcludedResourceTypes {
+		if strings.EqualFold(resourceType, excluded) {
+			return true
+		}
+	}
+	return false
+}
