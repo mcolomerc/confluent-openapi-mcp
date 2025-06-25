@@ -14,6 +14,12 @@ import (
 // InvokeTool executes a tool with the given request
 func (s *MCPServer) InvokeTool(req InvokeRequest) InvokeResponse {
 	logger.Debug("InvokeTool called with tool=%s, arguments=%v\n", req.Tool, req.Arguments)
+
+	// Special debug logging for tagdefs
+	if req.Arguments["resource"] == "tagdefs" {
+		logger.Debug("*** TAGDEFS TOOL INVOCATION: tool=%s, arguments=%v", req.Tool, req.Arguments)
+	}
+
 	var tool *tools.Tool
 	for i := range s.tools {
 		if s.tools[i].Name == req.Tool {
@@ -24,8 +30,35 @@ func (s *MCPServer) InvokeTool(req InvokeRequest) InvokeResponse {
 	if tool == nil {
 		return InvokeResponse{Error: "Tool not found"}
 	}
-	securityType := "cloud-api-key"
+
+	// Determine security type based on the endpoint and OpenAPI spec
+	securityType := "cloud-api-key" // Default fallback
 	endpoint := tool.Endpoint
+
+	// Parse method and path from endpoint
+	if parts := strings.Split(endpoint, " "); len(parts) == 2 {
+		method := parts[0]
+		path := parts[1]
+
+		// Get security type from OpenAPI spec
+		if s.spec != nil {
+			if specSecurityType := s.spec.GetSecurityTypeForEndpoint(method, path); specSecurityType != "" {
+				securityType = specSecurityType
+				logger.Debug("OpenAPI spec provided security type '%s' for %s %s", specSecurityType, method, path)
+			} else {
+				// If OpenAPI spec doesn't specify security type, use intelligent fallback based on path patterns
+				securityType = determineSecurityTypeFromPath(path)
+				logger.Debug("Using fallback security type '%s' for %s %s (spec didn't specify)", securityType, method, path)
+			}
+		}
+	}
+
+	logger.Debug("Using security type '%s' for endpoint '%s'", securityType, endpoint)
+
+	// Special debug for regions
+	if strings.Contains(endpoint, "regions") {
+		logger.Debug("*** REGIONS DEBUG: endpoint=%s, securityType=%s", endpoint, securityType)
+	}
 	_, _ = getAPICredentials(s.config, securityType, endpoint)
 
 	// --- Begin required parameter validation and auto-translation ---
@@ -34,6 +67,11 @@ func (s *MCPServer) InvokeTool(req InvokeRequest) InvokeResponse {
 
 	// For semantic tools, get resource from arguments
 	if action == "create" || action == "update" || action == "delete" || action == "get" || action == "list" {
+		if res, ok := req.Arguments["resource"].(string); ok {
+			resource = res
+		}
+	} else if action == "get_telemetry" {
+		// Special handling for telemetry tool
 		if res, ok := req.Arguments["resource"].(string); ok {
 			resource = res
 		}
@@ -67,6 +105,17 @@ func (s *MCPServer) InvokeTool(req InvokeRequest) InvokeResponse {
 			if _, ok := req.Arguments[param]; !ok {
 				if def := resolveDefaultParam(s.config, param, tool.Endpoint); def != "" {
 					req.Arguments[param] = def
+				}
+			}
+		}
+	} else if action == "get_telemetry" && resource != "" {
+		// Special handling for telemetry tool parameters
+		if mapping, err := tools.GetTelemetryEndpointMapping(resource); err == nil {
+			for _, param := range mapping.RequiredParams {
+				if _, ok := req.Arguments[param]; !ok {
+					if def := resolveDefaultParam(s.config, param, tool.Endpoint); def != "" {
+						req.Arguments[param] = def
+					}
 				}
 			}
 		}
@@ -133,6 +182,55 @@ func (s *MCPServer) InvokeTool(req InvokeRequest) InvokeResponse {
 				"info":      "Parameter 'name' was auto-translated to the required parameter.",
 				"arguments": req.Arguments,
 			}}
+		}
+	}
+	// Telemetry tool validation
+	if action == "get_telemetry" && resource != "" {
+		if mapping, err := tools.GetTelemetryEndpointMapping(resource); err == nil {
+			missing := []string{}
+
+			// For telemetry tools, extract parameters from nested 'parameters' object
+			var paramsToCheck map[string]interface{}
+			if params, ok := req.Arguments["parameters"].(map[string]interface{}); ok {
+				// Merge nested parameters with top-level arguments
+				paramsToCheck = make(map[string]interface{})
+				for k, v := range req.Arguments {
+					paramsToCheck[k] = v
+				}
+				for k, v := range params {
+					paramsToCheck[k] = v
+				}
+				logger.Debug("Extracted telemetry parameters from nested object: %v\n", paramsToCheck)
+			} else {
+				paramsToCheck = req.Arguments
+			}
+
+			for _, param := range mapping.RequiredParams {
+				if _, ok := paramsToCheck[param]; !ok {
+					// Check if this parameter can be resolved from defaults
+					if def := resolveDefaultParam(s.config, param, tool.Endpoint); def != "" {
+						paramsToCheck[param] = def
+						logger.Debug("Auto-resolved telemetry parameter %s from config: %s\n", param, def)
+						continue
+					}
+					missing = append(missing, param)
+				}
+			}
+
+			// Update req.Arguments with the merged parameters
+			req.Arguments = paramsToCheck
+
+			if len(missing) > 0 {
+				logger.Debug("Missing required telemetry parameters for %s: %v\n", resource, missing)
+				logger.Debug("Available arguments: %v\n", req.Arguments)
+				return InvokeResponse{
+					Result: map[string]interface{}{
+						"status":         "missing_required_params",
+						"requiredParams": missing,
+						"message":        "Please provide the following required telemetry parameters.",
+					},
+				}
+			}
 		}
 	}
 	// --- End required parameter validation and auto-translation ---
@@ -221,10 +319,40 @@ func (s *MCPServer) InvokeTool(req InvokeRequest) InvokeResponse {
 
 	// --- Actually call the API if this is a semantic tool ---
 	if resource != "" {
-		mapping, _ := tools.GetEndpointMapping(action, resource)
-		apiPath := tools.BuildAPIPath(mapping.PathPattern, req.Arguments)
-		logger.Debug("About to call API with method=%s, path=%s, parameters=%v, requestBody=%#v\n", mapping.Method, apiPath, req.Arguments, requestBody)
-		result, err := ExecuteAPICall(s.config, s.spec, mapping.Method, apiPath, req.Arguments, requestBody)
+		var mapping *tools.EndpointMapping
+		var apiPath string
+		var spec *openapi.OpenAPISpec
+
+		if action == "get_telemetry" {
+			// Special handling for telemetry tool
+			telemetryMapping, err := tools.GetTelemetryEndpointMapping(resource)
+			if err != nil {
+				return InvokeResponse{Error: fmt.Sprintf("Telemetry resource error: %v", err)}
+			}
+			mapping = telemetryMapping
+			apiPath = tools.BuildAPIPath(mapping.PathPattern, req.Arguments)
+			spec = s.telemetrySpec // Use telemetry spec instead of main spec
+			logger.Debug("About to call Telemetry API with method=%s, path=%s, parameters=%v\n", mapping.Method, apiPath, req.Arguments)
+		} else {
+			// Regular semantic tool handling
+			regularMapping, err := tools.GetEndpointMapping(action, resource)
+			if err != nil {
+				return InvokeResponse{Error: fmt.Sprintf("Endpoint mapping error: %v", err)}
+			}
+			mapping = regularMapping
+			apiPath = tools.BuildAPIPath(mapping.PathPattern, req.Arguments)
+			spec = s.spec // Use main spec
+
+			// Special debug logging for tagdefs
+			if resource == "tagdefs" {
+				logger.Debug("*** TAGDEFS ENDPOINT MAPPING: action=%s, pathPattern=%s, method=%s, builtPath=%s",
+					action, mapping.PathPattern, mapping.Method, apiPath)
+			}
+
+			logger.Debug("About to call API with method=%s, path=%s, parameters=%v, requestBody=%#v\n", mapping.Method, apiPath, req.Arguments, requestBody)
+		}
+
+		result, err := ExecuteAPICall(s.config, spec, mapping.Method, apiPath, req.Arguments, requestBody)
 		if err != nil {
 			return InvokeResponse{Error: err.Error()}
 		}
@@ -361,4 +489,37 @@ func transformConfigsParameter(configs interface{}) interface{} {
 
 	// Return as is if we can't transform it
 	return configs
+}
+
+// determineSecurityTypeFromPath determines the security type based on path patterns
+// when the OpenAPI spec doesn't specify it explicitly
+func determineSecurityTypeFromPath(path string) string {
+	pathLower := strings.ToLower(path)
+
+	// Cloud API patterns (use cloud-api-key) - check these FIRST
+	cloudPatterns := []string{
+		"/org/", "/iam/", "/srcm/", "/fcpm/", "/tableflow/", "/billing/", "/partner/",
+	}
+
+	for _, pattern := range cloudPatterns {
+		if strings.Contains(pathLower, pattern) {
+			return SecurityTypeCloudAPIKey
+		}
+	}
+
+	// Resource-specific API patterns (use resource-api-key)
+	resourcePatterns := []string{
+		"/kafka/", "/topics/", "/consumer-groups/", "/acls", "/configs",
+		"/flink/", "/compute-pools/", "/statements/",
+		"/schemas/", "/subjects/", "/mode", "/config", "/catalog/", "/exporters", "/contexts", "/dek-registry/",
+	}
+
+	for _, pattern := range resourcePatterns {
+		if strings.Contains(pathLower, pattern) {
+			return SecurityTypeResourceAPIKey
+		}
+	}
+
+	// Default to cloud API key for everything else
+	return SecurityTypeCloudAPIKey
 }

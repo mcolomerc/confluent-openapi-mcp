@@ -27,11 +27,11 @@ This is a test prompt for server integration testing.
 	cfg := &config.Config{
 		PromptsFolder: tempDir,
 		// Add minimal required fields (you may need to adjust these)
-		OpenAPISpecURL:               "http://test.com/spec.json",
-		TelemetryOpenAPISpecURL:      "http://test.com/telemetry-spec.yaml",
-		ConfluentEnvID:               "env-test",
-		ConfluentCloudAPIKey:         "test-key",
-		ConfluentCloudAPISecret:      "test-secret",
+		OpenAPISpecURL:          "http://test.com/spec.json",
+		TelemetryOpenAPISpecURL: "http://test.com/telemetry-spec.yaml",
+		ConfluentEnvID:          "env-test",
+		ConfluentCloudAPIKey:    "test-key",
+		ConfluentCloudAPISecret: "test-secret",
 		BootstrapServers:        "test-servers",
 		KafkaAPIKey:             "test-key",
 		KafkaAPISecret:          "test-secret",
@@ -88,11 +88,11 @@ func TestServerPromptsNoFolder(t *testing.T) {
 	// Create a test config without prompts folder
 	cfg := &config.Config{
 		// Add minimal required fields
-		OpenAPISpecURL:               "http://test.com/spec.json",
-		TelemetryOpenAPISpecURL:      "http://test.com/telemetry-spec.yaml",
-		ConfluentEnvID:               "env-test",
-		ConfluentCloudAPIKey:         "test-key",
-		ConfluentCloudAPISecret:      "test-secret",
+		OpenAPISpecURL:          "http://test.com/spec.json",
+		TelemetryOpenAPISpecURL: "http://test.com/telemetry-spec.yaml",
+		ConfluentEnvID:          "env-test",
+		ConfluentCloudAPIKey:    "test-key",
+		ConfluentCloudAPISecret: "test-secret",
 		BootstrapServers:        "test-servers",
 		KafkaAPIKey:             "test-key",
 		KafkaAPISecret:          "test-secret",

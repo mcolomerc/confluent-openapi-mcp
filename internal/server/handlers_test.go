@@ -32,12 +32,12 @@ It has multiple lines.`,
 
 	// Create a test config with the prompts folder
 	cfg := &config.Config{
-		PromptsFolder:                tempDir,
-		OpenAPISpecURL:               "http://test.com/spec.json",
-		TelemetryOpenAPISpecURL:      "http://test.com/telemetry-spec.yaml",
-		ConfluentEnvID:               "env-test",
-		ConfluentCloudAPIKey:         "test-key",
-		ConfluentCloudAPISecret:      "test-secret",
+		PromptsFolder:           tempDir,
+		OpenAPISpecURL:          "http://test.com/spec.json",
+		TelemetryOpenAPISpecURL: "http://test.com/telemetry-spec.yaml",
+		ConfluentEnvID:          "env-test",
+		ConfluentCloudAPIKey:    "test-key",
+		ConfluentCloudAPISecret: "test-secret",
 		BootstrapServers:        "test-servers",
 		KafkaAPIKey:             "test-key",
 		KafkaAPISecret:          "test-secret",

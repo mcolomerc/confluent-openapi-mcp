@@ -1,8 +1,17 @@
 # Confluent Kafka Analysis
 You are a Kafka expert helping analyze and troubleshoot Kafka topics in Confluent Cloud.
 
-Please analyze the following Kafka topic and provide insights about:
-1. List Topics from the Kafka cluster 
+Use the Confluent Cloud environment: {CONFLUENT_ENV_ID}
+Use cluster ID from environment: {KAFKA_CLUSTER_ID} 
+
+For a complete report we need:
+- Tag information per topic
+- Time-series metrics data (not just definitions)
+- Actual usage patterns and resource consumption
+- Cost breakdown by topic/domain
+
+Please analyze the following Kafka topic definition, usage and provide insights about:
+1. List Topics from the Kafka cluster. 
 2. Group Topics by relevant configurations: 
    2.1 Number of partitions: 
      2.1.1 Consider the Cluster type https://docs.confluent.io/cloud/current/clusters/cluster-types.html#cluster-limit-comparison to see if the number of partitions is appropriate for the cluster type.
@@ -12,15 +21,22 @@ Please analyze the following Kafka topic and provide insights about:
 3. Group Topics by Scope: 
    3.1 By name, identify if a naming convention is followed (e.g., prefix, suffix).
    3.2 By subject, if the topic is related to a specific subject or domain.
-   3.3 By tag if tags are available for the topic.
+   3.3 By tag, if tags are defined for the topic.
 4. Topic usage patterns:
    4.1 Identify topics with high message throughput.
    4.2 Identify topics with low message throughput.
    4.3 Identify topics with high consumer lag.
    4.4 Identify topics with high producer error rates.
+5. Breakdown costs and usage patterns:
+   5.1 Identify topics that are consuming the most resources (e.g., storage, compute).
+   5.2 Identify topics that are underutilized or overutilized.
+6. Recommendations:
+   6.1 Provide recommendations for optimizing topic configurations based on the analysis.
+7. Summary:
+   7.1 Provide a summary of the analysis, highlighting key findings and areas for improvement
  
 Build a summary report and recommendations for optimizing the Kafka topic configurations based on the analysis.
 Topic naming convention guidelines: 
  - https://www.datastreamhouse.com/blog/kafka-topic-naming-conventions-5-recommendations-with-examples
  - https://cnr.sh/posts/2017-08-29-how-paint-bike-shed-kafka-topic-naming-conventions/
- 
+

@@ -5,6 +5,7 @@ import (
 	"mcolomerc/mcp-server/internal/logger"
 	"mcolomerc/mcp-server/internal/openapi"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -286,12 +287,7 @@ func isVersionPattern(part string) bool {
 
 // isLikelyResourceName determines if a path component looks like a resource name
 func isLikelyResourceName(part string) bool {
-	// Exclude "configs" as it's not a standalone resource - it's always a sub-resource
-	if part == ConfigsResource {
-		return false
-	}
-
-	// Use heuristics only - no hardcoded lists
+	// Use heuristics only - no hardcoded exclusions
 	return isPluralResourceName(part)
 }
 
@@ -679,30 +675,30 @@ func GenerateSemanticToolsFromBothSpecs(mainSpec openapi.OpenAPISpec, telemetryS
 
 // GenerateSemanticToolsForTelemetry generates semantic tools specifically for the Telemetry API
 func GenerateSemanticToolsForTelemetry(spec openapi.OpenAPISpec) ([]Tool, error) {
-	// Initialize the semantic registry for telemetry
+	// We'll store telemetry mappings in the global registry with a special prefix
 	registryMutex.Lock()
+	defer registryMutex.Unlock()
 
-	// Create a separate registry for telemetry tools
-	telemetryRegistry := &SemanticToolRegistry{
-		Mappings: make(map[string]map[string]EndpointMapping),
-		Spec:     &spec,
+	// Ensure global registry exists
+	if GlobalSemanticRegistry == nil {
+		GlobalSemanticRegistry = &SemanticToolRegistry{
+			Mappings: make(map[string]map[string]EndpointMapping),
+			Spec:     &spec,
+		}
 	}
 
-	// Initialize action maps - for telemetry, we mainly focus on "get" and "list" operations
-	telemetryActions := []string{"get", "list"}
-	for _, action := range telemetryActions {
-		telemetryRegistry.Mappings[action] = make(map[string]EndpointMapping)
+	// Initialize telemetry action if it doesn't exist
+	if GlobalSemanticRegistry.Mappings["get_telemetry"] == nil {
+		GlobalSemanticRegistry.Mappings["get_telemetry"] = make(map[string]EndpointMapping)
 	}
 
 	// Parse OpenAPI paths and categorize them for telemetry
+	resourceSet := make(map[string]bool) // Use a set to avoid duplicates
 	for path, pathItem := range spec.Paths {
 		resource := ExtractResourceFromPath(path)
 		if resource == "" {
 			continue
 		}
-
-		// Add telemetry prefix to avoid name conflicts
-		resource = "telemetry-" + resource
 
 		logger.Debug("Processing telemetry resource: %s from path: %s\n", resource, path)
 
@@ -714,31 +710,38 @@ func GenerateSemanticToolsForTelemetry(spec openapi.OpenAPISpec) ([]Tool, error)
 				mapping := EndpointMapping{
 					Method:         op.Method,
 					PathPattern:    path,
-					RequiredParams: []string{},
+					RequiredParams: []string{"dataset"}, // Dataset is always required for telemetry
 					OptionalParams: []string{},
 				}
-				telemetryRegistry.Mappings[action][resource] = mapping
 
-				logger.Debug("Mapped telemetry action '%s' for resource '%s' to %s %s\n", action, resource, op.Method, path)
+				// Store in global registry with telemetry prefix
+				GlobalSemanticRegistry.Mappings["get_telemetry"][resource] = mapping
+				resourceSet[resource] = true // Add to set to avoid duplicates
+
+				logger.Debug("Mapped telemetry resource '%s' to %s %s\n", resource, op.Method, path)
 			}
 		}
 	}
 
-	registryMutex.Unlock()
+	// Convert set to sorted slice
+	var supportedResources []string
+	for resource := range resourceSet {
+		supportedResources = append(supportedResources, resource)
+	}
 
-	// Generate tools from the telemetry registry
+	// Sort for consistent ordering
+	sort.Strings(supportedResources)
+
+	// Generate a single telemetry tool that can handle all telemetry resources
 	var tools []Tool
-	for action, resourceMap := range telemetryRegistry.Mappings {
-		for resource, mapping := range resourceMap {
-			toolName := fmt.Sprintf("mcp_%s_%s", resource, action)
-			tool := Tool{
-				Name:        toolName,
-				Description: fmt.Sprintf("%s %s using Confluent Telemetry API", strings.Title(action), resource),
-				Endpoint:    mapping.PathPattern,
-				Parameters:  generateParametersFromPath(mapping.PathPattern),
-			}
-			tools = append(tools, tool)
+	if len(supportedResources) > 0 {
+		tool := Tool{
+			Name:        "get_telemetry",
+			Description: fmt.Sprintf("Get telemetry data from Confluent Telemetry API. Supported resources: %s", strings.Join(supportedResources, ", ")),
+			Endpoint:    "get_telemetry", // This will be resolved during invocation
+			Parameters:  createTelemetryToolParameters(supportedResources),
 		}
+		tools = append(tools, tool)
 	}
 
 	logger.Debug("Generated %d telemetry tools\n", len(tools))
@@ -765,36 +768,51 @@ func determineSemanticActionForTelemetry(method string, path string) string {
 	}
 }
 
-// generateParametersFromPath extracts parameters from a path pattern
-func generateParametersFromPath(path string) map[string]interface{} {
-	parameters := make(map[string]interface{})
-
-	// Basic structure for telemetry parameters
-	properties := make(map[string]interface{})
-	required := []string{}
-
-	// Add dataset parameter if path contains {dataset}
-	if strings.Contains(path, "{dataset}") {
-		properties["dataset"] = map[string]interface{}{
+// createTelemetryToolParameters creates parameters for the unified telemetry tool
+func createTelemetryToolParameters(supportedResources []string) map[string]interface{} {
+	properties := map[string]interface{}{
+		"resource": map[string]interface{}{
 			"type":        "string",
-			"description": "The dataset to query (e.g., 'cloud', 'cloud-custom')",
+			"description": "The type of telemetry resource to get",
+			"enum":        supportedResources,
+		},
+	}
+
+	// Add dataset parameter which is common for telemetry
+	properties["dataset"] = map[string]interface{}{
+		"type":        "string",
+		"description": "The dataset to query (e.g., 'cloud', 'cloud-custom')",
+	}
+
+	// Add optional parameters object for additional query parameters
+	properties["parameters"] = map[string]interface{}{
+		"type":        "object",
+		"description": "Additional parameters specific to the telemetry resource",
+		"properties":  map[string]interface{}{},
+	}
+
+	return map[string]interface{}{
+		"type":       "object",
+		"properties": properties,
+		"required":   []string{"resource", "dataset"},
+	}
+}
+
+// GetTelemetryEndpointMapping retrieves the endpoint mapping for a telemetry resource
+func GetTelemetryEndpointMapping(resource string) (*EndpointMapping, error) {
+	registryMutex.RLock()
+	defer registryMutex.RUnlock()
+
+	if GlobalSemanticRegistry == nil {
+		return nil, fmt.Errorf("semantic registry not initialized")
+	}
+
+	// Look for telemetry mappings in the global registry
+	if resourceMappings, exists := GlobalSemanticRegistry.Mappings["get_telemetry"]; exists {
+		if mapping, exists := resourceMappings[resource]; exists {
+			return &mapping, nil
 		}
-		required = append(required, "dataset")
 	}
 
-	// Add other common telemetry parameters
-	if strings.Contains(path, "/query") {
-		properties["parameters"] = map[string]interface{}{
-			"type":        "object",
-			"description": "Parameters specific to the chosen resource and action",
-		}
-	}
-
-	parameters["type"] = "object"
-	parameters["properties"] = properties
-	if len(required) > 0 {
-		parameters["required"] = required
-	}
-
-	return parameters
+	return nil, fmt.Errorf("telemetry resource '%s' not found", resource)
 }

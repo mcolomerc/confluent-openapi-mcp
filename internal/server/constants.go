@@ -13,6 +13,8 @@ const (
 	EndpointPatternTopics         = "/topics/"
 	EndpointPatternConsumerGroups = "/consumer-groups/"
 	EndpointPatternACLs           = "/acls"
+	EndpointPatternConfigs        = "/configs"
+	EndpointPatternKafkaV3        = "/kafka/v3/"
 
 	// Flink patterns
 	EndpointPatternFlink        = "flink"
@@ -26,6 +28,10 @@ const (
 	EndpointPatternSubjects            = "/subjects/"
 	EndpointPatternMode                = "/mode"
 	EndpointPatternConfig              = "/config"
+	EndpointPatternExporters           = "/exporters"
+	EndpointPatternContexts            = "/contexts"
+	EndpointPatternDekRegistry         = "/dek-registry/"
+	EndpointPatternCatalog             = "/catalog/"
 
 	// TableFlow patterns
 	EndpointPatternTableFlow = "tableflow"
@@ -71,7 +77,8 @@ const (
 
 // Default Base URLs
 const (
-	BaseURLConfluentCloud = "https://api.confluent.cloud"
+	BaseURLConfluentCloud     = "https://api.confluent.cloud"
+	BaseURLConfluentTelemetry = "https://api.telemetry.confluent.cloud"
 )
 
 // HTTP Configuration

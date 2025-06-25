@@ -30,13 +30,49 @@ type Credentials struct {
 // Helper to get API credentials based on security type and endpoint
 func getAPICredentials(cfg *config.Config, securityType, endpoint string) (apiKey, apiSecret string) {
 	logger.Debug("getAPICredentials called with securityType=%s, endpoint=%s", securityType, endpoint)
+
+	// Temporary debug for telemetry
+	if strings.Contains(strings.ToLower(endpoint), "telemetry") || strings.Contains(strings.ToLower(endpoint), "metrics") {
+		logger.Debug("*** TELEMETRY DEBUG: securityType=%s, endpoint=%s", securityType, endpoint)
+	}
+
+	// Special debug for regions
+	if strings.Contains(endpoint, "regions") {
+		logger.Debug("*** REGIONS CREDENTIALS DEBUG: securityType=%s, endpoint=%s", securityType, endpoint)
+	}
+
 	switch securityType {
 	case SecurityTypeCloudAPIKey:
+		logger.Debug("Using Cloud API credentials for cloud-api-key")
+		if strings.Contains(endpoint, "regions") {
+			logger.Debug("*** REGIONS: Using Cloud API Key=%s, Secret=%s", cfg.ConfluentCloudAPIKey[:8]+"...", cfg.ConfluentCloudAPISecret[:8]+"...")
+		}
+		return cfg.ConfluentCloudAPIKey, cfg.ConfluentCloudAPISecret
+	case "api-key":
+		logger.Debug("Using Cloud API credentials for api-key")
+		// Hardcode telemetry credentials to test
+		if strings.Contains(strings.ToLower(endpoint), "metrics") || strings.Contains(strings.ToLower(endpoint), "telemetry") {
+			logger.Debug("*** TELEMETRY: Using hardcoded credentials")
+			return "HE5P5PRAMML3HVTW", "l1FE+CpfyWgV5QGM4olu6NSme0xrvABC7yMBTAeafftEOQ1eLiObb2yQeAGZo3Ua"
+		}
 		return cfg.ConfluentCloudAPIKey, cfg.ConfluentCloudAPISecret
 	case SecurityTypeResourceAPIKey:
+		// Check for telemetry endpoints first - they should use Cloud API credentials
+		if strings.Contains(strings.ToLower(endpoint), "/v2/metrics/") ||
+			strings.Contains(strings.ToLower(endpoint), "/v2/descriptors/") ||
+			strings.Contains(strings.ToLower(endpoint), "/telemetry/") {
+			logger.Debug("Telemetry endpoint detected, using Cloud API credentials")
+			return cfg.ConfluentCloudAPIKey, cfg.ConfluentCloudAPISecret
+		}
+
 		// Map endpoint patterns to their corresponding credentials
 		resourceCredentials := map[string]Credentials{
 			EndpointPatternKafka:               {cfg.KafkaAPIKey, cfg.KafkaAPISecret},
+			EndpointPatternKafkaV3:             {cfg.KafkaAPIKey, cfg.KafkaAPISecret},
+			EndpointPatternTopics:              {cfg.KafkaAPIKey, cfg.KafkaAPISecret},
+			EndpointPatternConsumerGroups:      {cfg.KafkaAPIKey, cfg.KafkaAPISecret},
+			EndpointPatternACLs:                {cfg.KafkaAPIKey, cfg.KafkaAPISecret},
+			EndpointPatternConfigs:             {cfg.KafkaAPIKey, cfg.KafkaAPISecret},
 			EndpointPatternFlink:               {cfg.FlinkAPIKey, cfg.FlinkAPISecret},
 			EndpointPatternSchemaRegistry:      {cfg.SchemaRegistryAPIKey, cfg.SchemaRegistryAPISecret},
 			EndpointPatternSchemaRegistryShort: {cfg.SchemaRegistryAPIKey, cfg.SchemaRegistryAPISecret},
@@ -44,6 +80,10 @@ func getAPICredentials(cfg *config.Config, securityType, endpoint string) (apiKe
 			EndpointPatternSubjects:            {cfg.SchemaRegistryAPIKey, cfg.SchemaRegistryAPISecret},
 			EndpointPatternMode:                {cfg.SchemaRegistryAPIKey, cfg.SchemaRegistryAPISecret},
 			EndpointPatternConfig:              {cfg.SchemaRegistryAPIKey, cfg.SchemaRegistryAPISecret},
+			EndpointPatternExporters:           {cfg.SchemaRegistryAPIKey, cfg.SchemaRegistryAPISecret},
+			EndpointPatternContexts:            {cfg.SchemaRegistryAPIKey, cfg.SchemaRegistryAPISecret},
+			EndpointPatternDekRegistry:         {cfg.SchemaRegistryAPIKey, cfg.SchemaRegistryAPISecret},
+			EndpointPatternCatalog:             {cfg.SchemaRegistryAPIKey, cfg.SchemaRegistryAPISecret},
 			EndpointPatternTableFlow:           {cfg.TableflowAPIKey, cfg.TableflowAPISecret},
 		}
 
@@ -56,10 +96,20 @@ func getAPICredentials(cfg *config.Config, securityType, endpoint string) (apiKe
 			if strings.Contains(endpointLower, pattern) ||
 				(strings.HasSuffix(pattern, "/") && endpointLower == strings.TrimSuffix(pattern, "/")) {
 				logger.Debug("Pattern '%s' matched! Using credentials: key=%s, secret=%s", pattern, creds.Key[:8]+"...", creds.Secret[:8]+"...")
+
+				// Special logging for catalog/tagdefs
+				if strings.Contains(endpointLower, "catalog") || strings.Contains(endpointLower, "tagdefs") {
+					logger.Debug("*** CATALOG/TAGDEFS CREDENTIALS: endpoint=%s, pattern=%s, key=%s", endpointLower, pattern, creds.Key[:8]+"...")
+				}
+
 				return creds.Key, creds.Secret
 			}
 		}
 		logger.Debug("No patterns matched for endpoint '%s'", endpointLower)
+	default:
+		// For unknown security types (like "api-key" from telemetry spec), try using Cloud API credentials
+		logger.Debug("Unknown security type '%s', trying Cloud API credentials", securityType)
+		return cfg.ConfluentCloudAPIKey, cfg.ConfluentCloudAPISecret
 	}
 	logger.Debug("Returning empty credentials")
 	return "", ""
@@ -173,6 +223,11 @@ func ResolveRequiredParameters(cfg *config.Config, requiredParams []string, prov
 func ExecuteAPICall(cfg *config.Config, spec *openapi.OpenAPISpec, method, path string, parameters map[string]interface{}, requestBody interface{}) (map[string]interface{}, error) {
 	logger.Debug("ExecuteAPICall called with method=%s, path=%s, parameters=%v, requestBody=%v\n", method, path, parameters, requestBody)
 
+	// Special logging for tagdefs
+	if strings.Contains(path, "tagdefs") {
+		logger.Debug("*** TAGDEFS API CALL: method=%s, path=%s", method, path)
+	}
+
 	// Determine security type using the OpenAPI spec or fallback to static approach
 	securityType := DetermineSecurityTypeFromSpec(spec, method, path)
 
@@ -186,6 +241,11 @@ func ExecuteAPICall(cfg *config.Config, spec *openapi.OpenAPISpec, method, path 
 	baseURL := getBaseURL(cfg, path)
 	if baseURL == "" {
 		return nil, fmt.Errorf("could not determine base URL for path: %s", path)
+	}
+
+	// Special logging for tagdefs URL construction
+	if strings.Contains(path, "tagdefs") {
+		logger.Debug("*** TAGDEFS URL: baseURL=%s, path=%s", baseURL, path)
 	}
 
 	// Build full URL with query parameters
@@ -224,6 +284,11 @@ func ExecuteAPICall(cfg *config.Config, spec *openapi.OpenAPISpec, method, path 
 	req, err := http.NewRequest(method, fullURL, bodyReader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %v", err)
+	}
+
+	// Special logging for tagdefs final URL
+	if strings.Contains(path, "tagdefs") {
+		logger.Debug("*** TAGDEFS FINAL REQUEST: %s %s", method, fullURL)
 	}
 
 	// Set headers
@@ -283,6 +348,10 @@ func getBaseURL(cfg *config.Config, path string) string {
 		getURL   func() string
 	}{
 		{
+			patterns: []string{"/v2/metrics/", "/v2/descriptors/", "/telemetry/"},
+			getURL:   func() string { return BaseURLConfluentTelemetry },
+		},
+		{
 			patterns: []string{"/kafka/", EndpointPatternTopics, EndpointPatternConsumerGroups, EndpointPatternACLs},
 			getURL:   func() string { return cfg.KafkaRestEndpoint },
 		},
@@ -291,7 +360,7 @@ func getBaseURL(cfg *config.Config, path string) string {
 			getURL:   func() string { return cfg.FlinkRestEndpoint },
 		},
 		{
-			patterns: []string{EndpointPatternSchemas, EndpointPatternSubjects, EndpointPatternMode, EndpointPatternConfig},
+			patterns: []string{EndpointPatternSchemas, EndpointPatternSubjects, EndpointPatternMode, EndpointPatternConfig, EndpointPatternCatalog, EndpointPatternExporters, EndpointPatternContexts, EndpointPatternDekRegistry},
 			getURL:   func() string { return cfg.SchemaRegistryEndpoint },
 		},
 		{
@@ -306,6 +375,10 @@ func getBaseURL(cfg *config.Config, path string) string {
 			if strings.Contains(pathLower, pattern) ||
 				(strings.HasSuffix(pattern, "/") && pathLower == strings.TrimSuffix(pattern, "/")) {
 				if baseURL := mapping.getURL(); baseURL != "" {
+					// Special logging for catalog/tagdefs
+					if strings.Contains(pathLower, "catalog") || strings.Contains(pathLower, "tagdefs") {
+						logger.Debug("*** CATALOG/TAGDEFS BASE URL: path=%s, pattern=%s, baseURL=%s", pathLower, pattern, baseURL)
+					}
 					return baseURL
 				}
 			}
