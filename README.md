@@ -1,6 +1,6 @@
 # Confluent OpenAPI MCP Server
 
-A Model Context Protocol (MCP) server that dynamically generates semantic tools from the Confluent Cloud OpenAPI specification. This server provides a bridge between MCP clients and the Confluent Cloud API, enabling AI agents to interact with Kafka clusters, Flink compute pools, Schema Registry, TableFlow, and other Confluent services through natural language interfaces.
+A Model Context Protocol (MCP) server that dynamically generates semantic tools from the Confluent Cloud OpenAPI specifications. This server provides a bridge between MCP clients and Confluent Cloud APIs, enabling AI agents to interact with Kafka clusters, Flink compute pools, Schema Registry, TableFlow, and telemetry services through natural language interfaces.
 
 ## 📖 Quick Navigation
 
@@ -14,12 +14,17 @@ A Model Context Protocol (MCP) server that dynamically generates semantic tools 
 
 ### 1. OpenAPI Specification Loading
 
-The server loads the Confluent Cloud OpenAPI specification from either:
+The server loads both Confluent Cloud OpenAPI specifications from either:
 
+**Main Confluent API:**
 - A local file (`api-spec/confluent-apispec.json` by default)
 - A remote URL (specified via `OPENAPI_SPEC_URL` environment variable)
 
-The OpenAPI spec is parsed to extract:
+**Confluent Telemetry API:**
+- A local file (`api-spec/confluent-telemetry-apispec.yaml` by default)  
+- A remote URL (specified via `TELEMETRY_OPENAPI_SPEC_URL` environment variable)
+
+The OpenAPI specs are parsed to extract:
 
 - API endpoints and their HTTP methods
 - Request/response schemas
@@ -176,6 +181,8 @@ The server requires multiple environment variables for proper operation. Create 
 - **`CONFLUENT_ENV_ID`**: Environment ID (must start with `env-`)
   - Example: `env-12345`
 
+**Note for Telemetry API Access**: The same `CONFLUENT_CLOUD_API_KEY` and `CONFLUENT_CLOUD_API_SECRET` are used for accessing the Confluent Telemetry API. The user or service account must have the **MetricsViewer** role to query telemetry data.
+
 #### Kafka Cluster
 
 - **`BOOTSTRAP_SERVERS`**: Kafka bootstrap servers
@@ -218,6 +225,9 @@ The server requires multiple environment variables for proper operation. Create 
 - **`OPENAPI_SPEC_URL`**: Custom OpenAPI specification URL or path
   - Default: Uses local `api-spec/confluent-apispec.json`
   - Example: `https://api.confluent.cloud/openapi.json`
+- **`TELEMETRY_OPENAPI_SPEC_URL`**: Confluent Telemetry API specification URL or path
+  - Default: Uses local `api-spec/confluent-telemetry-apispec.yaml`
+  - Example: `https://api.telemetry.confluent.cloud/api.yaml`
 - **`DISABLE_RESOURCE_DISCOVERY`**: Disable automatic resource instance discovery (`true` or `false`)
   - Default: `false` (resource discovery enabled)
   - When `true`: Skips enumeration of individual resource instances for faster startup

@@ -1,16 +1,26 @@
 # Confluent Kafka Analysis
-You are a Kafka expert helping analyze and troubleshoot Kafka topics and Schemas in Confluent Cloud.
+You are a Kafka expert helping analyze and troubleshoot Kafka topics in Confluent Cloud.
 
 Please analyze the following Kafka topic and provide insights about:
-1. List Topics from the Kafka cluster 
-2. Group topics by tag if tags are available for the topic.
-3. Get Topic configurations and settings
-4. Partition count and replication factor. Build a partition distribution considering the total number of partitions. 
-3. Identify Topics where:  
- 3.1 There is no subject related to the topic name. Get the schema registry subjects and compare with the topic names.
- 3.2 There are no tags associated with the topic. 
- 3.3 There are no consumers or producers associated with the topic 
- 3.4 Most active topics based on message throughput. Get metrics export and analyze the throughput of each topic.
- 3.5 Topics with high latency or error rates
 
-Focus on identify unused or underutilized topics or schemas that can be cleaned up or optimized.
+1. List Topics from the Kafka cluster 
+2. Group Topics by relevant configurations: 
+   2.1 Number of partitions
+   2.2 Retention period
+   2.3 Retention bytes
+   2.4 Cleanup policy
+3. Group Topics by Scope: 
+   3.1 By name, identify if a naming convention is followed (e.g., prefix, suffix).
+   3.2 By subject, if the topic is related to a specific subject or domain.
+   3.3 By tag if tags are available for the topic.
+4. Topic usage patterns:
+   4.1 Identify topics with high message throughput.
+   4.2 Identify topics with low message throughput.
+   4.3 Identify topics with high consumer lag.
+   4.4 Identify topics with high producer error rates.
+ 
+Build a summary report and recommendations for optimizing the Kafka topic configurations based on the analysis.
+Guidelines: 
+ - https://www.datastreamhouse.com/blog/kafka-topic-naming-conventions-5-recommendations-with-examples
+ - https://cnr.sh/posts/2017-08-29-how-paint-bike-shed-kafka-topic-naming-conventions/
+ 

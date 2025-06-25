@@ -7,6 +7,7 @@ toolchain go1.23.10
 require (
 	github.com/joho/godotenv v1.5.1
 	github.com/mark3labs/mcp-go v0.32.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (

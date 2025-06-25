@@ -14,10 +14,11 @@ import (
 // All fields are required and validated except LOG which is optional
 // Use this struct instead of accessing os.Getenv directly
 type Config struct {
-	OpenAPISpecURL          string
-	ConfluentEnvID          string
-	ConfluentCloudAPIKey    string
-	ConfluentCloudAPISecret string
+	OpenAPISpecURL               string
+	TelemetryOpenAPISpecURL      string
+	ConfluentEnvID               string
+	ConfluentCloudAPIKey         string
+	ConfluentCloudAPISecret      string
 	BootstrapServers        string
 	KafkaAPIKey             string
 	KafkaAPISecret          string
@@ -45,9 +46,10 @@ func LoadConfig(path string) (*Config, error) {
 	_ = godotenv.Load(path)
 
 	cfg := &Config{
-		OpenAPISpecURL:          os.Getenv("OPENAPI_SPEC_URL"),
-		ConfluentEnvID:          os.Getenv("CONFLUENT_ENV_ID"),
-		ConfluentCloudAPIKey:    os.Getenv("CONFLUENT_CLOUD_API_KEY"),
+		OpenAPISpecURL:               os.Getenv("OPENAPI_SPEC_URL"),
+		TelemetryOpenAPISpecURL:      os.Getenv("TELEMETRY_OPENAPI_SPEC_URL"),
+		ConfluentEnvID:               os.Getenv("CONFLUENT_ENV_ID"),
+		ConfluentCloudAPIKey:         os.Getenv("CONFLUENT_CLOUD_API_KEY"),
 		ConfluentCloudAPISecret: os.Getenv("CONFLUENT_CLOUD_API_SECRET"),
 		BootstrapServers:        os.Getenv("BOOTSTRAP_SERVERS"),
 		KafkaAPIKey:             os.Getenv("KAFKA_API_KEY"),

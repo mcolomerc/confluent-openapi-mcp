@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
 // OpenAPISpec represents the structure of the OpenAPI specification.
@@ -121,6 +123,36 @@ func ParseOpenAPISpecBytes(data []byte) (*OpenAPISpec, error) {
 	return &spec, nil
 }
 
+// ParseOpenAPISpecYAML parses the OpenAPI spec from a YAML file.
+func ParseOpenAPISpecYAML(filename string) (*OpenAPISpec, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	bytes, err := io.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	var spec OpenAPISpec
+	if err := yaml.Unmarshal(bytes, &spec); err != nil {
+		return nil, err
+	}
+
+	return &spec, nil
+}
+
+// ParseOpenAPISpecBytesYAML parses the OpenAPI spec from a YAML byte slice.
+func ParseOpenAPISpecBytesYAML(data []byte) (*OpenAPISpec, error) {
+	var spec OpenAPISpec
+	if err := yaml.Unmarshal(data, &spec); err != nil {
+		return nil, err
+	}
+	return &spec, nil
+}
+
 // LoadSpec loads an OpenAPI spec from a file path or URL, or from the default if empty.
 func LoadSpec() (*OpenAPISpec, error) {
 	specPath := os.Getenv("OPENAPI_SPEC_URL")
@@ -144,6 +176,51 @@ func LoadSpec() (*OpenAPISpec, error) {
 		return ParseOpenAPISpecBytes(body)
 	}
 	return ParseOpenAPISpec(specPath)
+}
+
+// LoadTelemetrySpec loads the Confluent Telemetry OpenAPI spec from a file path or URL.
+func LoadTelemetrySpec() (*OpenAPISpec, error) {
+	specPath := os.Getenv("TELEMETRY_OPENAPI_SPEC_URL")
+	if specPath == "" {
+		specPath = "api-spec/confluent-telemetry-apispec.yaml"
+	}
+
+	if strings.HasPrefix(specPath, "http://") || strings.HasPrefix(specPath, "https://") {
+		resp, err := http.Get(specPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch Telemetry OpenAPI spec from remote: %w", err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != 200 {
+			return nil, fmt.Errorf("failed to fetch Telemetry OpenAPI spec: HTTP %d", resp.StatusCode)
+		}
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read Telemetry OpenAPI spec body: %w", err)
+		}
+		return ParseOpenAPISpecBytesYAML(body)
+	}
+	
+	// Determine if it's YAML or JSON based on file extension
+	if strings.HasSuffix(strings.ToLower(specPath), ".yaml") || strings.HasSuffix(strings.ToLower(specPath), ".yml") {
+		return ParseOpenAPISpecYAML(specPath)
+	}
+	return ParseOpenAPISpec(specPath)
+}
+
+// LoadBothSpecs loads both the main Confluent API spec and the Telemetry API spec.
+func LoadBothSpecs() (*OpenAPISpec, *OpenAPISpec, error) {
+	mainSpec, err := LoadSpec()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to load main OpenAPI spec: %w", err)
+	}
+
+	telemetrySpec, err := LoadTelemetrySpec()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to load telemetry OpenAPI spec: %w", err)
+	}
+
+	return mainSpec, telemetrySpec, nil
 }
 
 // ResolveRequestBodyRef resolves a RequestBody reference if needed

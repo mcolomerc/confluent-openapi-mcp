@@ -65,22 +65,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Load and parse OpenAPI spec
-	spec, err := openapi.LoadSpec()
+	// Load and parse OpenAPI specs
+	spec, telemetrySpec, err := openapi.LoadBothSpecs()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to load OpenAPI spec: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Failed to load OpenAPI specs: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Generate semantic tools from OpenAPI
-	semanticTools, err := tools.GenerateSemanticTools(*spec)
+	// Generate semantic tools from both OpenAPI specs
+	semanticTools, err := tools.GenerateSemanticToolsFromBothSpecs(*spec, *telemetrySpec)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to generate semantic tools: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Create the composite MCPServer instance with config, spec and semanticTools
-	mcpServer := server.NewCompositeServer(cfg, spec, semanticTools)
+	// Create the composite MCPServer instance with config, specs and semanticTools
+	mcpServer := server.NewCompositeServer(cfg, spec, telemetrySpec, semanticTools)
 
 	// Connect monitor to server if monitoring is enabled
 	if monitor != nil {

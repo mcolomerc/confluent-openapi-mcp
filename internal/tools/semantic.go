@@ -654,3 +654,147 @@ func extractResourcesFromSpec(spec *openapi.OpenAPISpec) map[string]bool {
 
 	return resourceSet
 }
+
+// GenerateSemanticToolsFromBothSpecs generates semantic tools from both the main Confluent API spec and the Telemetry API spec
+func GenerateSemanticToolsFromBothSpecs(mainSpec openapi.OpenAPISpec, telemetrySpec openapi.OpenAPISpec) ([]Tool, error) {
+	// Generate tools from main spec
+	mainTools, err := GenerateSemanticTools(mainSpec)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate tools from main spec: %w", err)
+	}
+
+	// Generate tools from telemetry spec
+	telemetryTools, err := GenerateSemanticToolsForTelemetry(telemetrySpec)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate tools from telemetry spec: %w", err)
+	}
+
+	// Combine both sets of tools
+	allTools := make([]Tool, 0, len(mainTools)+len(telemetryTools))
+	allTools = append(allTools, mainTools...)
+	allTools = append(allTools, telemetryTools...)
+
+	return allTools, nil
+}
+
+// GenerateSemanticToolsForTelemetry generates semantic tools specifically for the Telemetry API
+func GenerateSemanticToolsForTelemetry(spec openapi.OpenAPISpec) ([]Tool, error) {
+	// Initialize the semantic registry for telemetry
+	registryMutex.Lock()
+	
+	// Create a separate registry for telemetry tools
+	telemetryRegistry := &SemanticToolRegistry{
+		Mappings: make(map[string]map[string]EndpointMapping),
+		Spec:     &spec,
+	}
+	
+	// Initialize action maps - for telemetry, we mainly focus on "get" and "list" operations
+	telemetryActions := []string{"get", "list"}
+	for _, action := range telemetryActions {
+		telemetryRegistry.Mappings[action] = make(map[string]EndpointMapping)
+	}
+
+	// Parse OpenAPI paths and categorize them for telemetry
+	for path, pathItem := range spec.Paths {
+		resource := ExtractResourceFromPath(path)
+		if resource == "" {
+			continue
+		}
+
+		// Add telemetry prefix to avoid name conflicts
+		resource = "telemetry-" + resource
+
+		logger.Debug("Processing telemetry resource: %s from path: %s\n", resource, path)
+
+		// Process each HTTP method using the operations we extracted
+		operations := extractHTTPOperations(&pathItem)
+		for _, op := range operations {
+			action := determineSemanticActionForTelemetry(op.Method, path)
+			if action != "" {
+				mapping := EndpointMapping{
+					Method:         op.Method,
+					PathPattern:    path,
+					RequiredParams: []string{},
+					OptionalParams: []string{},
+				}
+				telemetryRegistry.Mappings[action][resource] = mapping
+				
+				logger.Debug("Mapped telemetry action '%s' for resource '%s' to %s %s\n", action, resource, op.Method, path)
+			}
+		}
+	}
+	
+	registryMutex.Unlock()
+
+	// Generate tools from the telemetry registry
+	var tools []Tool
+	for action, resourceMap := range telemetryRegistry.Mappings {
+		for resource, mapping := range resourceMap {
+			toolName := fmt.Sprintf("mcp_%s_%s", resource, action)
+			tool := Tool{
+				Name:        toolName,
+				Description: fmt.Sprintf("%s %s using Confluent Telemetry API", strings.Title(action), resource),
+				Endpoint:    mapping.PathPattern,
+				Parameters:  generateParametersFromPath(mapping.PathPattern),
+			}
+			tools = append(tools, tool)
+		}
+	}
+
+	logger.Debug("Generated %d telemetry tools\n", len(tools))
+	return tools, nil
+}
+
+// determineSemanticActionForTelemetry determines the semantic action for telemetry endpoints
+func determineSemanticActionForTelemetry(method string, path string) string {
+	switch method {
+	case HTTPMethodGet:
+		// For telemetry, most GET endpoints are either "get" (single resource) or "list" (collection)
+		if strings.Contains(path, "/{") {
+			return "get"
+		}
+		return "list"
+	case HTTPMethodPost:
+		// For telemetry, POST is typically used for querying metrics
+		if strings.Contains(path, "/query") || strings.Contains(path, "/attributes") {
+			return "get" // Treat query operations as get operations for telemetry
+		}
+		return "get" // Treat other POST operations as get operations for telemetry
+	default:
+		return "" // Telemetry API is primarily read-only, so we only support GET and POST
+	}
+}
+
+// generateParametersFromPath extracts parameters from a path pattern
+func generateParametersFromPath(path string) map[string]interface{} {
+	parameters := make(map[string]interface{})
+	
+	// Basic structure for telemetry parameters
+	properties := make(map[string]interface{})
+	required := []string{}
+	
+	// Add dataset parameter if path contains {dataset}
+	if strings.Contains(path, "{dataset}") {
+		properties["dataset"] = map[string]interface{}{
+			"type":        "string",
+			"description": "The dataset to query (e.g., 'cloud', 'cloud-custom')",
+		}
+		required = append(required, "dataset")
+	}
+	
+	// Add other common telemetry parameters
+	if strings.Contains(path, "/query") {
+		properties["parameters"] = map[string]interface{}{
+			"type":        "object",
+			"description": "Parameters specific to the chosen resource and action",
+		}
+	}
+	
+	parameters["type"] = "object"
+	parameters["properties"] = properties
+	if len(required) > 0 {
+		parameters["required"] = required
+	}
+	
+	return parameters
+}
