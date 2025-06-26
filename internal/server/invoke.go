@@ -293,7 +293,15 @@ func ExecuteAPICall(cfg *config.Config, spec *openapi.OpenAPISpec, method, path 
 
 	// Set headers
 	req.Header.Set(HeaderContentType, ContentTypeJSON)
-	req.Header.Set(HeaderAccept, ContentTypeJSON)
+
+	// Special handling for telemetry export endpoints
+	if strings.Contains(path, "/v2/metrics/") && strings.Contains(path, "/export") {
+		// Telemetry export endpoint expects Prometheus/OpenMetrics format, not JSON
+		req.Header.Set(HeaderAccept, "text/plain;version=0.0.4")
+		logger.Debug("Setting Prometheus Accept header for telemetry export endpoint")
+	} else {
+		req.Header.Set(HeaderAccept, ContentTypeJSON)
+	}
 
 	// Set authentication
 	auth := base64.StdEncoding.EncodeToString([]byte(apiKey + ":" + apiSecret))
@@ -317,9 +325,23 @@ func ExecuteAPICall(cfg *config.Config, spec *openapi.OpenAPISpec, method, path 
 		return nil, fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(responseBody))
 	}
 
-	// Parse JSON response
+	// Handle response based on content type
 	var result map[string]interface{}
 	if len(responseBody) > 0 {
+		// Check if this is a telemetry export endpoint response (Prometheus/OpenMetrics format)
+		contentType := resp.Header.Get("Content-Type")
+		if strings.Contains(path, "/v2/metrics/") && strings.Contains(path, "/export") &&
+			(strings.Contains(contentType, "text/plain") || strings.Contains(contentType, "openmetrics-text")) {
+			// Return Prometheus/OpenMetrics response as-is
+			return map[string]interface{}{
+				"metrics_data": string(responseBody),
+				"content_type": contentType,
+				"status_code":  resp.StatusCode,
+				"format":       "prometheus",
+			}, nil
+		}
+
+		// Try to parse as JSON for regular API responses
 		if err := json.Unmarshal(responseBody, &result); err != nil {
 			// If JSON parsing fails, return raw response
 			return map[string]interface{}{
