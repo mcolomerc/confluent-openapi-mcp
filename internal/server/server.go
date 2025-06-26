@@ -33,7 +33,7 @@ type MCPServer struct {
 // NewCompositeServer creates an MCPServer with provided config, main spec, telemetry spec and semanticTools
 func NewCompositeServer(cfg *config.Config, spec *openapi.OpenAPISpec, telemetrySpec *openapi.OpenAPISpec, semanticTools []tools.Tool) *MCPServer {
 	// Initialize prompt manager
-	promptManager := prompts.NewPromptManager(cfg.PromptsFolder)
+	promptManager := prompts.NewPromptManager(cfg.PromptsFolder, cfg)
 
 	// Load prompts (ignore errors for now, just log them)
 	if err := promptManager.LoadPrompts(); err != nil {
@@ -172,6 +172,14 @@ func (s *MCPServer) GetPromptContent(name string) (string, error) {
 	return s.promptManager.GetPromptContent(name)
 }
 
+// GetPromptContentWithSubstitution returns the content of a specific prompt with variable substitution
+func (s *MCPServer) GetPromptContentWithSubstitution(name string) (string, error) {
+	if s.promptManager == nil {
+		return "", fmt.Errorf("prompt manager not initialized")
+	}
+	return s.promptManager.GetPromptContentWithSubstitution(name)
+}
+
 // ReloadPrompts reloads all prompts from the configured folder
 func (s *MCPServer) ReloadPrompts() error {
 	if s.promptManager == nil {
@@ -280,7 +288,7 @@ func (s *MCPServer) createToolHandler(toolName string) func(context.Context, mcp
 // createPromptHandler creates a prompt handler function for the MCP server
 func (s *MCPServer) createPromptHandler(promptName string) func(context.Context, mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
 	return func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
-		content, err := s.GetPromptContent(promptName)
+		content, err := s.GetPromptContentWithSubstitution(promptName)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get prompt content: %w", err)
 		}

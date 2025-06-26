@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"mcolomerc/mcp-server/internal/config"
+
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
@@ -14,11 +16,12 @@ type PromptManager struct {
 	prompts       map[string]mcp.Prompt
 	promptContent map[string]string // Store prompt content separately
 	folder        string
+	config        *config.Config // Add config for variable substitution
 }
 
 // NewPromptManager creates a new prompt manager
 // If folder is empty, it will default to "./prompts" relative to the executable
-func NewPromptManager(folder string) *PromptManager {
+func NewPromptManager(folder string, cfg *config.Config) *PromptManager {
 	// If no folder provided, use default local prompts folder
 	if folder == "" {
 		// Get the executable directory
@@ -36,6 +39,7 @@ func NewPromptManager(folder string) *PromptManager {
 		prompts:       make(map[string]mcp.Prompt),
 		promptContent: make(map[string]string),
 		folder:        folder,
+		config:        cfg,
 	}
 }
 
@@ -94,16 +98,72 @@ func (pm *PromptManager) loadPromptFile(filePath string) error {
 	// Parse the content to extract description and prompt text
 	description, promptText := parsePromptContent(string(content))
 
+	// Store the original prompt content without substitution for potential argument-based substitution later
+	pm.promptContent[promptName] = promptText
+
+	// Perform variable substitution only for default content retrieval
+	promptText, err = pm.substituteVariables(promptText)
+	if err != nil {
+		return fmt.Errorf("failed to substitute variables in prompt text: %w", err)
+	}
+
+	// Define common arguments that can override default config values
+	arguments := []mcp.PromptArgument{}
+
+	// Check for environment ID references (both formats)
+	if strings.Contains(promptText, "CONFLUENT_ENV_ID") || strings.Contains(pm.promptContent[promptName], "{CONFLUENT_ENV_ID}") ||
+		strings.Contains(promptText, "environment") || strings.Contains(pm.promptContent[promptName], "{environment}") ||
+		strings.Contains(promptText, "environment_id") || strings.Contains(pm.promptContent[promptName], "{environment_id}") {
+		arguments = append(arguments, mcp.PromptArgument{
+			Name:        "environment_id",
+			Description: "Override the default Confluent environment ID",
+			Required:    false,
+		})
+	}
+
+	// Check for cluster ID references (both formats)
+	if strings.Contains(promptText, "KAFKA_CLUSTER_ID") || strings.Contains(pm.promptContent[promptName], "{KAFKA_CLUSTER_ID}") ||
+		strings.Contains(promptText, "cluster_id") || strings.Contains(pm.promptContent[promptName], "{cluster_id}") ||
+		strings.Contains(promptText, "kafka_cluster_id") || strings.Contains(pm.promptContent[promptName], "{kafka_cluster_id}") {
+		arguments = append(arguments, mcp.PromptArgument{
+			Name:        "cluster_id",
+			Description: "Override the default Kafka cluster ID",
+			Required:    false,
+		})
+	}
+
+	// Check for compute pool ID references (both formats)
+	if strings.Contains(promptText, "FLINK_COMPUTE_POOL_ID") || strings.Contains(pm.promptContent[promptName], "{FLINK_COMPUTE_POOL_ID}") ||
+		strings.Contains(promptText, "compute_pool_id") || strings.Contains(pm.promptContent[promptName], "{compute_pool_id}") ||
+		strings.Contains(promptText, "pool_id") || strings.Contains(pm.promptContent[promptName], "{pool_id}") {
+		arguments = append(arguments, mcp.PromptArgument{
+			Name:        "compute_pool_id",
+			Description: "Override the default Flink compute pool ID",
+			Required:    false,
+		})
+	}
+
+	// Check for organization ID references (both formats)
+	if strings.Contains(promptText, "FLINK_ORG_ID") || strings.Contains(pm.promptContent[promptName], "{FLINK_ORG_ID}") ||
+		strings.Contains(promptText, "organization_id") || strings.Contains(pm.promptContent[promptName], "{organization_id}") ||
+		strings.Contains(promptText, "org_id") || strings.Contains(pm.promptContent[promptName], "{org_id}") ||
+		strings.Contains(promptText, "org") || strings.Contains(pm.promptContent[promptName], "{org}") {
+		arguments = append(arguments, mcp.PromptArgument{
+			Name:        "organization_id",
+			Description: "Override the default Flink organization ID",
+			Required:    false,
+		})
+	}
+
 	// Create the prompt
 	prompt := mcp.Prompt{
 		Name:        promptName,
 		Description: description,
-		Arguments:   []mcp.PromptArgument{}, // No arguments for now, can be extended
+		Arguments:   arguments,
 	}
 
 	// Store the prompt with its content
 	pm.prompts[promptName] = prompt
-	pm.promptContent[promptName] = promptText
 
 	return nil
 }
@@ -181,4 +241,117 @@ func (pm *PromptManager) ReloadPrompts() error {
 
 	// Reload all prompts
 	return pm.LoadPrompts()
+}
+
+// substituteVariables performs variable substitution in the prompt text
+func (pm *PromptManager) substituteVariables(promptText string) (string, error) {
+	if pm.config == nil {
+		return promptText, nil
+	}
+
+	// Define mappings from placeholder names to config values
+	// Support both environment variable format and parameter format
+	replacements := map[string]string{
+		// Environment variable format (original)
+		"{CONFLUENT_ENV_ID}":           pm.config.ConfluentEnvID,
+		"{KAFKA_CLUSTER_ID}":           pm.config.KafkaClusterID,
+		"{CONFLUENT_CLOUD_API_KEY}":    pm.config.ConfluentCloudAPIKey,
+		"{CONFLUENT_CLOUD_API_SECRET}": pm.config.ConfluentCloudAPISecret,
+		"{BOOTSTRAP_SERVERS}":          pm.config.BootstrapServers,
+		"{KAFKA_API_KEY}":              pm.config.KafkaAPIKey,
+		"{KAFKA_API_SECRET}":           pm.config.KafkaAPISecret,
+		"{KAFKA_REST_ENDPOINT}":        pm.config.KafkaRestEndpoint,
+		"{FLINK_ORG_ID}":               pm.config.FlinkOrgID,
+		"{FLINK_REST_ENDPOINT}":        pm.config.FlinkRestEndpoint,
+		"{FLINK_ENV_NAME}":             pm.config.FlinkEnvName,
+		"{FLINK_DATABASE_NAME}":        pm.config.FlinkDatabaseName,
+		"{FLINK_API_KEY}":              pm.config.FlinkAPIKey,
+		"{FLINK_API_SECRET}":           pm.config.FlinkAPISecret,
+		"{FLINK_COMPUTE_POOL_ID}":      pm.config.FlinkComputePoolID,
+		"{SCHEMA_REGISTRY_API_KEY}":    pm.config.SchemaRegistryAPIKey,
+		"{SCHEMA_REGISTRY_API_SECRET}": pm.config.SchemaRegistryAPISecret,
+		"{SCHEMA_REGISTRY_ENDPOINT}":   pm.config.SchemaRegistryEndpoint,
+		"{TABLEFLOW_API_KEY}":          pm.config.TableflowAPIKey,
+		"{TABLEFLOW_API_SECRET}":       pm.config.TableflowAPISecret,
+
+		// Parameter format (same as tools use) - more user-friendly
+		"{environment}":              pm.config.ConfluentEnvID,
+		"{environment_id}":           pm.config.ConfluentEnvID,
+		"{cluster_id}":               pm.config.KafkaClusterID,
+		"{kafka_cluster_id}":         pm.config.KafkaClusterID,
+		"{compute_pool_id}":          pm.config.FlinkComputePoolID,
+		"{pool_id}":                  pm.config.FlinkComputePoolID,
+		"{organization_id}":          pm.config.FlinkOrgID,
+		"{org_id}":                   pm.config.FlinkOrgID,
+		"{org}":                      pm.config.FlinkOrgID,
+		"{schema_registry_endpoint}": pm.config.SchemaRegistryEndpoint,
+		"{bootstrap_servers}":        pm.config.BootstrapServers,
+		"{kafka_rest_endpoint}":      pm.config.KafkaRestEndpoint,
+		"{flink_rest_endpoint}":      pm.config.FlinkRestEndpoint,
+		"{flink_env_name}":           pm.config.FlinkEnvName,
+		"{flink_database_name}":      pm.config.FlinkDatabaseName,
+	}
+
+	// Perform replacements
+	result := promptText
+	for placeholder, value := range replacements {
+		result = strings.ReplaceAll(result, placeholder, value)
+	}
+
+	return result, nil
+}
+
+// GetPromptContentWithSubstitution returns the content of a specific prompt with variable substitution
+func (pm *PromptManager) GetPromptContentWithSubstitution(name string) (string, error) {
+	content, err := pm.GetPromptContent(name)
+	if err != nil {
+		return "", err
+	}
+	return pm.substituteVariables(content)
+}
+
+// GetPromptContentWithArguments returns the content of a specific prompt with variable substitution and argument overrides
+func (pm *PromptManager) GetPromptContentWithArguments(name string, args map[string]interface{}) (string, error) {
+	content, exists := pm.promptContent[name]
+	if !exists {
+		return "", fmt.Errorf("prompt '%s' not found", name)
+	}
+
+	// Start with original content
+	result := content
+
+	// Apply argument overrides first (support both formats)
+	if environmentID, ok := args["environment_id"].(string); ok && environmentID != "" {
+		// Replace both environment variable format and parameter format
+		result = strings.ReplaceAll(result, "{CONFLUENT_ENV_ID}", environmentID)
+		result = strings.ReplaceAll(result, "{environment}", environmentID)
+		result = strings.ReplaceAll(result, "{environment_id}", environmentID)
+	}
+	if clusterID, ok := args["cluster_id"].(string); ok && clusterID != "" {
+		// Replace both environment variable format and parameter format
+		result = strings.ReplaceAll(result, "{KAFKA_CLUSTER_ID}", clusterID)
+		result = strings.ReplaceAll(result, "{cluster_id}", clusterID)
+		result = strings.ReplaceAll(result, "{kafka_cluster_id}", clusterID)
+	}
+	if computePoolID, ok := args["compute_pool_id"].(string); ok && computePoolID != "" {
+		// Replace both environment variable format and parameter format
+		result = strings.ReplaceAll(result, "{FLINK_COMPUTE_POOL_ID}", computePoolID)
+		result = strings.ReplaceAll(result, "{compute_pool_id}", computePoolID)
+		result = strings.ReplaceAll(result, "{pool_id}", computePoolID)
+	}
+	if orgID, ok := args["organization_id"].(string); ok && orgID != "" {
+		// Replace both environment variable format and parameter format
+		result = strings.ReplaceAll(result, "{FLINK_ORG_ID}", orgID)
+		result = strings.ReplaceAll(result, "{organization_id}", orgID)
+		result = strings.ReplaceAll(result, "{org_id}", orgID)
+		result = strings.ReplaceAll(result, "{org}", orgID)
+	}
+
+	// Then apply default config substitutions for any remaining placeholders
+	substituted, err := pm.substituteVariables(result)
+	if err != nil {
+		return "", err
+	}
+
+	return substituted, nil
 }

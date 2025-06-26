@@ -1,109 +1,192 @@
 package prompts
 
 import (
+	"mcolomerc/mcp-server/internal/config"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
-func TestPromptManager(t *testing.T) {
-	// Create a temporary directory for test prompts
+func TestVariableSubstitution(t *testing.T) {
 	tempDir := t.TempDir()
 
-	// Create a test prompt file
-	testContent := `# Test Prompt
-This is a test prompt for testing purposes.
+	testContent := `# Test
+Environment: {CONFLUENT_ENV_ID}
+Cluster: {KAFKA_CLUSTER_ID}`
 
-Please help with testing:
-1. Check functionality
-2. Verify parsing
-3. Ensure content loads correctly
-`
-
-	testFile := filepath.Join(tempDir, "test-prompt.txt")
+	testFile := filepath.Join(tempDir, "test.txt")
 	if err := os.WriteFile(testFile, []byte(testContent), 0644); err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
+		t.Fatal(err)
 	}
 
-	// Create prompt manager
-	pm := NewPromptManager(tempDir)
+	cfg := &config.Config{
+		ConfluentEnvID: "env-123",
+		KafkaClusterID: "lkc-456",
+	}
 
-	// Load prompts
+	pm := NewPromptManager(tempDir, cfg)
 	if err := pm.LoadPrompts(); err != nil {
-		t.Fatalf("Failed to load prompts: %v", err)
+		t.Fatal(err)
 	}
 
-	// Test getting prompts list
-	prompts := pm.GetPrompts()
-	if len(prompts) != 1 {
-		t.Fatalf("Expected 1 prompt, got %d", len(prompts))
-	}
-
-	// Test prompt details
-	prompt := prompts[0]
-	if prompt.Name != "test-prompt" {
-		t.Errorf("Expected prompt name 'test-prompt', got '%s'", prompt.Name)
-	}
-
-	if prompt.Description != "Test Prompt" {
-		t.Errorf("Expected description 'Test Prompt', got '%s'", prompt.Description)
-	}
-
-	// Test getting specific prompt
-	foundPrompt, exists := pm.GetPrompt("test-prompt")
-	if !exists {
-		t.Error("Expected prompt to exist")
-	}
-
-	if foundPrompt.Name != "test-prompt" {
-		t.Errorf("Expected found prompt name 'test-prompt', got '%s'", foundPrompt.Name)
-	}
-
-	// Test getting prompt content
-	content, err := pm.GetPromptContent("test-prompt")
+	content, err := pm.GetPromptContentWithSubstitution("test")
 	if err != nil {
-		t.Fatalf("Failed to get prompt content: %v", err)
+		t.Fatal(err)
 	}
 
-	expectedContent := `This is a test prompt for testing purposes.
-
-Please help with testing:
-1. Check functionality
-2. Verify parsing
-3. Ensure content loads correctly`
-
-	if content != expectedContent {
-		t.Errorf("Content mismatch.\nExpected:\n%s\n\nGot:\n%s", expectedContent, content)
+	if !strings.Contains(content, "env-123") {
+		t.Error("Expected substituted env ID")
+	}
+	if !strings.Contains(content, "lkc-456") {
+		t.Error("Expected substituted cluster ID")
 	}
 }
 
-func TestPromptManagerEmptyFolder(t *testing.T) {
-	// Test with a nonexistent default folder path to simulate empty folder behavior
-	pm := NewPromptManager("/definitely/nonexistent/path/that/should/not/exist")
+func TestBothVariableFormats(t *testing.T) {
+	tempDir := t.TempDir()
 
-	// Should not error on empty folder
+	// Test content with both environment variable format and parameter format
+	testContent := `# Test Both Formats
+Environment Variable Format:
+- Environment: {CONFLUENT_ENV_ID}
+- Cluster: {KAFKA_CLUSTER_ID}
+- Compute Pool: {FLINK_COMPUTE_POOL_ID}
+- Organization: {FLINK_ORG_ID}
+
+Parameter Format (same as tools):
+- Environment: {environment_id}
+- Cluster: {cluster_id}
+- Compute Pool: {compute_pool_id}
+- Organization: {org_id}
+
+Mixed Usage:
+- Use environment {environment} with cluster {KAFKA_CLUSTER_ID}
+- Deploy to pool {pool_id} in org {FLINK_ORG_ID}`
+
+	testFile := filepath.Join(tempDir, "test-formats.txt")
+	if err := os.WriteFile(testFile, []byte(testContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := &config.Config{
+		ConfluentEnvID:     "env-test123",
+		KafkaClusterID:     "lkc-test456",
+		FlinkComputePoolID: "lfcp-test789",
+		FlinkOrgID:         "org-test000",
+	}
+
+	pm := NewPromptManager(tempDir, cfg)
 	if err := pm.LoadPrompts(); err != nil {
-		t.Errorf("Expected no error for empty folder, got: %v", err)
+		t.Fatal(err)
 	}
 
-	// Should return empty list
-	prompts := pm.GetPrompts()
-	if len(prompts) != 0 {
-		t.Errorf("Expected 0 prompts for empty folder, got %d", len(prompts))
+	content, err := pm.GetPromptContentWithSubstitution("test-formats")
+	if err != nil {
+		t.Fatal(err)
 	}
+
+	// Verify all environment variable format substitutions
+	if !strings.Contains(content, "env-test123") {
+		t.Error("Expected substituted env ID from CONFLUENT_ENV_ID")
+	}
+	if !strings.Contains(content, "lkc-test456") {
+		t.Error("Expected substituted cluster ID from KAFKA_CLUSTER_ID")
+	}
+	if !strings.Contains(content, "lfcp-test789") {
+		t.Error("Expected substituted compute pool ID from FLINK_COMPUTE_POOL_ID")
+	}
+	if !strings.Contains(content, "org-test000") {
+		t.Error("Expected substituted org ID from FLINK_ORG_ID")
+	}
+
+	// Verify no unsubstituted placeholders remain
+	if strings.Contains(content, "{CONFLUENT_ENV_ID}") {
+		t.Error("Found unsubstituted CONFLUENT_ENV_ID placeholder")
+	}
+	if strings.Contains(content, "{environment_id}") {
+		t.Error("Found unsubstituted environment_id placeholder")
+	}
+	if strings.Contains(content, "{cluster_id}") {
+		t.Error("Found unsubstituted cluster_id placeholder")
+	}
+	if strings.Contains(content, "{compute_pool_id}") {
+		t.Error("Found unsubstituted compute_pool_id placeholder")
+	}
+	if strings.Contains(content, "{org_id}") {
+		t.Error("Found unsubstituted org_id placeholder")
+	}
+
+	t.Logf("Substituted content:\n%s", content)
 }
 
-func TestPromptManagerNonexistentFolder(t *testing.T) {
-	pm := NewPromptManager("/nonexistent/folder")
+func TestArgumentOverridesWithBothFormats(t *testing.T) {
+	tempDir := t.TempDir()
 
-	// Should not error on nonexistent folder
+	// Test content with both formats that should be overridden by arguments
+	testContent := `# Test Argument Overrides
+Original env: {CONFLUENT_ENV_ID}
+Original cluster: {cluster_id}
+Original pool: {compute_pool_id}
+Original org: {org_id}`
+
+	testFile := filepath.Join(tempDir, "test-overrides.txt")
+	if err := os.WriteFile(testFile, []byte(testContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := &config.Config{
+		ConfluentEnvID:     "env-default",
+		KafkaClusterID:     "lkc-default",
+		FlinkComputePoolID: "lfcp-default",
+		FlinkOrgID:         "org-default",
+	}
+
+	pm := NewPromptManager(tempDir, cfg)
 	if err := pm.LoadPrompts(); err != nil {
-		t.Errorf("Expected no error for nonexistent folder, got: %v", err)
+		t.Fatal(err)
 	}
 
-	// Should return empty list
-	prompts := pm.GetPrompts()
-	if len(prompts) != 0 {
-		t.Errorf("Expected 0 prompts for nonexistent folder, got %d", len(prompts))
+	// Test with argument overrides
+	args := map[string]interface{}{
+		"environment_id":  "env-override",
+		"cluster_id":      "lkc-override",
+		"compute_pool_id": "lfcp-override",
+		"organization_id": "org-override",
 	}
+
+	content, err := pm.GetPromptContentWithArguments("test-overrides", args)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify overrides took effect
+	if !strings.Contains(content, "env-override") {
+		t.Error("Expected overridden environment ID")
+	}
+	if !strings.Contains(content, "lkc-override") {
+		t.Error("Expected overridden cluster ID")
+	}
+	if !strings.Contains(content, "lfcp-override") {
+		t.Error("Expected overridden compute pool ID")
+	}
+	if !strings.Contains(content, "org-override") {
+		t.Error("Expected overridden org ID")
+	}
+
+	// Verify defaults were not used
+	if strings.Contains(content, "env-default") {
+		t.Error("Found default env ID instead of override")
+	}
+	if strings.Contains(content, "lkc-default") {
+		t.Error("Found default cluster ID instead of override")
+	}
+	if strings.Contains(content, "lfcp-default") {
+		t.Error("Found default compute pool ID instead of override")
+	}
+	if strings.Contains(content, "org-default") {
+		t.Error("Found default org ID instead of override")
+	}
+
+	t.Logf("Content with overrides:\n%s", content)
 }

@@ -1,0 +1,32 @@
+# Enhanced Confluent Resource Analysis
+You are a Confluent Cloud expert helping analyze resources across different services.
+
+## Environment Configuration
+Primary environment: {environment_id}
+Alternative format: {CONFLUENT_ENV_ID}
+
+## Kafka Analysis
+Target cluster: {cluster_id}
+Alternative format: {KAFKA_CLUSTER_ID}
+REST endpoint: {kafka_rest_endpoint}
+
+## Flink Analysis  
+Compute pool: {compute_pool_id}
+Organization: {org_id}
+Database: {flink_database_name}
+
+## Schema Registry
+Endpoint: {schema_registry_endpoint}
+
+Please analyze the following resources using the above configuration:
+
+1. List and categorize all Kafka topics in cluster {cluster_id}
+2. Review Flink compute pools and running statements in {org_id}
+3. Examine Schema Registry subjects and schemas
+4. Provide optimization recommendations based on usage patterns
+
+Note: This prompt demonstrates both variable formats:
+- Parameter format (recommended): {cluster_id}, {environment_id}, {org_id}
+- Environment variable format: {KAFKA_CLUSTER_ID}, {CONFLUENT_ENV_ID}, {FLINK_ORG_ID}
+
+Both formats work identically and will be substituted with the same configured values.
