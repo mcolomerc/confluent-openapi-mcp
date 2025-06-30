@@ -1,0 +1,172 @@
+# Confluent Schema Registry Cleanup Prompt
+
+## Purpose
+This prompt replicates the functionality of Confluent's schema-deletion-tool to discover and safely delete unused schemas from Schema Registry. The tool identifies schemas that are no longer actively used by any topics across your Kafka clusters.
+
+## Overview
+The schema cleanup process involves:
+1. **Discovery**: Find all eligible subjects and schemas in Schema Registry
+2. **Analysis**: Scan Kafka topics to identify actively used schemas  
+3. **Identification**: Compare registered schemas vs. active usage to find unused schemas
+4. **Cleanup**: Safely soft-delete and optionally hard-delete unused schemas
+
+## Safety Features
+- **TopicNameStrategy Only**: Only processes subjects following TopicNameStrategy naming (`topic-key`, `topic-value`)
+- **Active Usage Scanning**: Consumes from actual topics to verify schema usage
+- **Two-Phase Deletion**: Soft delete first, then optional permanent hard delete
+- **Confirmation Steps**: Multiple confirmations before any destructive operations
+- **Cluster Selection**: Ability to skip specific clusters from scanning
+
+---
+
+## Step-by-Step Schema Cleanup Instructions
+
+### Phase 1: Environment Setup and Discovery
+
+First, let's identify all eligible subjects and schemas in your environment:
+
+```
+Please list all Schema Registry subjects in the current environment to identify cleanup candidates.
+```
+
+Then filter for TopicNameStrategy subjects:
+
+```
+From the subjects listed, identify which ones follow TopicNameStrategy naming conventions (ending with "-key" or "-value"). These are the only subjects eligible for cleanup.
+```
+
+### Phase 2: Cluster Discovery and Selection
+
+Next, we need to identify all Kafka clusters to scan:
+
+```
+List all Kafka clusters in the current environment. I need to scan these clusters to identify which schemas are actively being used.
+```
+
+Review the cluster list and specify any clusters to skip:
+
+```
+From the clusters listed above, please let me know if there are any clusters I should skip during the schema usage scanning process. This is useful for excluding development, testing, or sensitive production clusters.
+```
+
+### Phase 3: Schema Inventory
+
+Get comprehensive schema information for analysis:
+
+```
+For each eligible subject identified in Phase 1, list all schemas with their versions and schema IDs. This will create our complete inventory of registered schemas.
+```
+
+### Phase 4: Topic Discovery and Usage Analysis
+
+For each cluster we're scanning, identify relevant topics:
+
+```
+For cluster [CLUSTER_ID], list all topics that correspond to our eligible subjects from Phase 1. Remember that a subject "mytopic-value" corresponds to a topic named "mytopic".
+```
+
+### Phase 5: Schema Usage Analysis Simulation
+
+Since the MCP server cannot directly consume from Kafka topics like the original tool, we need to use alternative approaches:
+
+#### Option A: Consumer Group Analysis
+```
+For each topic identified, check if there are any active consumer groups. Active consumers indicate the topic is being used and its schemas are likely active.
+```
+
+#### Option B: Topic Metrics Analysis  
+```
+For each topic, check the recent message production metrics. Topics with recent activity are likely using their registered schemas.
+```
+
+#### Option C: Manual Verification (Most Conservative)
+```
+For the topics we identified, please help me verify which ones have had recent activity in the last [30 days]. We'll consider schemas for topics with recent activity as "in use" and exclude them from deletion.
+```
+
+### Phase 6: Deletion Candidate Identification
+
+Based on our analysis:
+
+```
+Based on our topic usage analysis, identify schemas that appear to be unused:
+- Schemas for topics with no recent activity
+- Schemas for topics with no active consumer groups  
+- Schemas that are old versions and superseded by newer ones
+
+Please present these as deletion candidates with schema ID, subject, and version.
+```
+
+### Phase 7: Safe Schema Deletion
+
+#### Soft Delete (Reversible)
+For each schema identified as a deletion candidate:
+
+```
+Perform a soft delete of schema [SCHEMA_ID] from subject [SUBJECT] version [VERSION]. This marks the schema as deleted but allows recovery if needed.
+```
+
+#### Verification
+After soft deletion:
+
+```
+Verify that the soft-deleted schemas are no longer visible in normal schema registry operations, but can still be recovered if needed.
+```
+
+#### Hard Delete (Permanent) - Optional
+Only if you're absolutely certain:
+
+```
+⚠️ PERMANENT OPERATION: If you're completely sure these schemas are no longer needed, I can perform permanent hard deletion. This cannot be undone. Please confirm each schema for permanent deletion:
+
+For schema [SCHEMA_ID] from subject [SUBJECT] version [VERSION], perform permanent deletion.
+```
+
+---
+
+## Safety Recommendations
+
+### Before Starting
+1. **Backup**: Ensure you have backups of your Schema Registry data
+2. **Low-Traffic Period**: Run during low-traffic times to minimize impact
+3. **Test Environment**: Test the process in a non-production environment first
+
+### During Execution
+1. **Incremental Approach**: Start with obviously unused schemas (very old versions)
+2. **Monitoring**: Monitor applications for any schema-related errors after soft deletion
+3. **Grace Period**: Wait 24-48 hours between soft delete and hard delete
+
+### Verification Steps
+1. **Application Health**: Verify all applications continue working after soft deletion
+2. **Error Monitoring**: Check application logs for schema resolution errors
+3. **Rollback Plan**: Be prepared to undelete schemas if issues arise
+
+---
+
+## Example Workflow
+
+Here's a complete example for cleaning up schemas for a topic called "customer-orders":
+
+1. **Discovery**: "List subjects related to customer-orders (customer-orders-key, customer-orders-value)"
+2. **Schema Inventory**: "List all schema versions for customer-orders-key and customer-orders-value subjects"
+3. **Usage Analysis**: "Check recent activity on customer-orders topic across all clusters"
+4. **Candidate Identification**: "If customer-orders topic has old schema versions (v1, v2) but only uses v3, mark v1 and v2 as candidates"
+5. **Soft Delete**: "Soft delete customer-orders-key v1, customer-orders-key v2, customer-orders-value v1, customer-orders-value v2"
+6. **Verification**: "Monitor for 24 hours to ensure no applications break"
+7. **Hard Delete**: "If confident, permanently delete the soft-deleted schemas"
+
+---
+
+## Recovery Procedures
+
+If you need to recover a soft-deleted schema:
+
+```
+I need to recover a previously soft-deleted schema. Please help me restore schema [SCHEMA_ID] from subject [SUBJECT] version [VERSION] that was soft-deleted.
+```
+
+Note: Hard-deleted schemas cannot be recovered and must be re-registered if needed.
+
+---
+
+This prompt provides a comprehensive, safe approach to schema cleanup that matches the functionality of Confluent's schema-deletion-tool while working within the capabilities of the MCP server.

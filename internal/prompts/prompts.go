@@ -13,10 +13,12 @@ import (
 
 // PromptManager handles loading and managing prompts from external files
 type PromptManager struct {
-	prompts       map[string]mcp.Prompt
-	promptContent map[string]string // Store prompt content separately
-	folder        string
-	config        *config.Config // Add config for variable substitution
+	prompts          map[string]mcp.Prompt
+	promptContent    map[string]string // Store prompt content separately
+	folder           string
+	config           *config.Config // Add config for variable substitution
+	directives       string         // Combined directives content
+	directivesFolder string         // Path to directives folder
 }
 
 // NewPromptManager creates a new prompt manager
@@ -35,16 +37,39 @@ func NewPromptManager(folder string, cfg *config.Config) *PromptManager {
 		}
 	}
 
+	// Determine directives folder path
+	directivesFolder := ""
+	if cfg != nil && cfg.DirectivesFolder != "" {
+		// Use config-specified directives folder
+		directivesFolder = cfg.DirectivesFolder
+	} else {
+		// Try to find directives folder relative to executable
+		execPath, err := os.Executable()
+		if err == nil {
+			execDir := filepath.Dir(execPath)
+			directivesFolder = filepath.Join(execDir, "directives")
+		} else {
+			// Fallback to current working directory + directives
+			directivesFolder = "directives"
+		}
+	}
+
 	return &PromptManager{
-		prompts:       make(map[string]mcp.Prompt),
-		promptContent: make(map[string]string),
-		folder:        folder,
-		config:        cfg,
+		prompts:          make(map[string]mcp.Prompt),
+		promptContent:    make(map[string]string),
+		folder:           folder,
+		config:           cfg,
+		directivesFolder: directivesFolder,
 	}
 }
 
 // LoadPrompts loads all .txt files from the configured prompts folder
 func (pm *PromptManager) LoadPrompts() error {
+	// First, load directives
+	if err := pm.loadDirectives(); err != nil {
+		return fmt.Errorf("failed to load directives: %w", err)
+	}
+
 	if pm.folder == "" {
 		// This shouldn't happen with the new default logic, but keep as safety
 		return nil
@@ -233,13 +258,14 @@ func (pm *PromptManager) GetPromptContent(name string) (string, error) {
 	return content, nil
 }
 
-// ReloadPrompts reloads all prompts from the folder
+// ReloadPrompts reloads all prompts and directives from their respective folders
 func (pm *PromptManager) ReloadPrompts() error {
-	// Clear existing prompts
+	// Clear existing prompts and directives
 	pm.prompts = make(map[string]mcp.Prompt)
 	pm.promptContent = make(map[string]string)
+	pm.directives = ""
 
-	// Reload all prompts
+	// Reload all prompts (which will also reload directives)
 	return pm.LoadPrompts()
 }
 
@@ -301,16 +327,23 @@ func (pm *PromptManager) substituteVariables(promptText string) (string, error) 
 	return result, nil
 }
 
-// GetPromptContentWithSubstitution returns the content of a specific prompt with variable substitution
+// GetPromptContentWithSubstitution returns the content of a specific prompt with variable substitution and directives
 func (pm *PromptManager) GetPromptContentWithSubstitution(name string) (string, error) {
 	content, err := pm.GetPromptContent(name)
 	if err != nil {
 		return "", err
 	}
-	return pm.substituteVariables(content)
+
+	substituted, err := pm.substituteVariables(content)
+	if err != nil {
+		return "", err
+	}
+
+	// Compose with directives
+	return pm.composePromptWithDirectives(substituted), nil
 }
 
-// GetPromptContentWithArguments returns the content of a specific prompt with variable substitution and argument overrides
+// GetPromptContentWithArguments returns the content of a specific prompt with variable substitution, argument overrides, and directives
 func (pm *PromptManager) GetPromptContentWithArguments(name string, args map[string]interface{}) (string, error) {
 	content, exists := pm.promptContent[name]
 	if !exists {
@@ -353,5 +386,71 @@ func (pm *PromptManager) GetPromptContentWithArguments(name string, args map[str
 		return "", err
 	}
 
-	return substituted, nil
+	// Compose with directives
+	return pm.composePromptWithDirectives(substituted), nil
+}
+
+// loadDirectives loads all .txt files from the directives folder and combines them
+func (pm *PromptManager) loadDirectives() error {
+	// Check if directives are enabled
+	if pm.config != nil && !pm.config.EnableDirectives {
+		// Directives are disabled
+		return nil
+	}
+
+	if pm.directivesFolder == "" {
+		// No directives folder configured
+		return nil
+	}
+
+	// Check if directives folder exists
+	if _, err := os.Stat(pm.directivesFolder); os.IsNotExist(err) {
+		// Directives folder doesn't exist, this is not an error
+		return nil
+	}
+
+	// Read all .txt files in the directives folder
+	files, err := filepath.Glob(filepath.Join(pm.directivesFolder, "*.txt"))
+	if err != nil {
+		return fmt.Errorf("failed to read directives folder: %w", err)
+	}
+
+	var allDirectives []string
+
+	// Load each directive file
+	for _, file := range files {
+		content, err := os.ReadFile(file)
+		if err != nil {
+			return fmt.Errorf("failed to read directive file %s: %w", file, err)
+		}
+
+		// Trim whitespace and add to collection
+		directive := strings.TrimSpace(string(content))
+		if directive != "" {
+			allDirectives = append(allDirectives, directive)
+		}
+	}
+
+	// Combine all directives with double newlines for separation
+	pm.directives = strings.Join(allDirectives, "\n\n")
+
+	return nil
+}
+
+// GetDirectives returns the combined directives content
+func (pm *PromptManager) GetDirectives() string {
+	return pm.directives
+}
+
+// composePromptWithDirectives combines directives with a prompt
+func (pm *PromptManager) composePromptWithDirectives(promptContent string) string {
+	if pm.directives == "" {
+		return promptContent
+	}
+	return pm.directives + "\n\n" + promptContent
+}
+
+// SetDirectivesFolder sets the directives folder path (useful for testing)
+func (pm *PromptManager) SetDirectivesFolder(folder string) {
+	pm.directivesFolder = folder
 }

@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - LLM_DETECTION_ENABLED=true
+      - LLM_DETECTION_URL=http://ollama:11434/api/chat
+      - LLM_DETECTION_MODEL=llama3.2:1b
+      - LLM_DETECTION_TIMEOUT=10
+    env_file:
+      - .env
+    depends_on:
+      - ollama
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-security
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
+    environment:
+      - OLLAMA_ORIGINS=*
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Optional: Model initialization container
+  ollama-init:
+    image: ollama/ollama:latest
+    depends_on:
+      - ollama
+    volumes:
+      - ollama-data:/root/.ollama
+    command: >
+      sh -c "
+        echo 'Waiting for Ollama to be ready...' &&
+        sleep 10 &&
+        until curl -s http://ollama:11434/api/tags; do
+          echo 'Waiting for Ollama...'
+          sleep 5
+        done &&
+        echo 'Pulling security detection model...' &&
+        ollama pull llama3.2:1b &&
+        echo 'Model ready for security detection!'
+      "
+    restart: "no"
+
+volumes:
+  ollama-data:

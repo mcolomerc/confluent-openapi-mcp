@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"mcolomerc/mcp-server/internal/guardrails"
 	"mcolomerc/mcp-server/internal/logger"
 	"mcolomerc/mcp-server/internal/openapi"
 	"mcolomerc/mcp-server/internal/tools"
@@ -29,6 +30,19 @@ func (s *MCPServer) InvokeTool(req InvokeRequest) InvokeResponse {
 	}
 	if tool == nil {
 		return InvokeResponse{Error: "Tool not found"}
+	}
+
+	// Apply input guardrails - validate tool parameters for injection attempts
+	if s.guardrails != nil {
+		validationResult := s.guardrails.ValidateToolInput(req.Tool, req.Arguments)
+		if validationResult.Detected {
+			logger.Debug("Input injection detected in tool %s: patterns=%v", req.Tool, validationResult.Patterns)
+			errorMsg := "Input validation failed: potential malicious input detected"
+			if validationResult.HighSeverity {
+				errorMsg = "Input validation failed: high-risk injection pattern detected"
+			}
+			return InvokeResponse{Error: errorMsg}
+		}
 	}
 
 	// Determine security type based on the endpoint and OpenAPI spec
@@ -356,6 +370,24 @@ func (s *MCPServer) InvokeTool(req InvokeRequest) InvokeResponse {
 		if err != nil {
 			return InvokeResponse{Error: err.Error()}
 		}
+
+		// Check for sensitive operations and add warnings (without modifying the API result)
+		if s.guardrails != nil {
+			sensitiveInfo := guardrails.CheckSensitiveOperation(action, resource, req.Arguments)
+			if sensitiveInfo.IsSensitive {
+				logger.Debug("Sensitive operation detected: %s %s - %s", action, resource, sensitiveInfo.Warning)
+
+				// For sensitive operations, wrap the result to include a warning
+				// This keeps the API response clean while adding contextual information
+				wrappedResult := map[string]interface{}{
+					"data":           result,
+					"warning":        sensitiveInfo.Warning,
+					"operation_type": "sensitive",
+				}
+				return InvokeResponse{Result: wrappedResult}
+			}
+		}
+
 		return InvokeResponse{Result: result}
 	}
 	// fallback: return error for non-semantic tool

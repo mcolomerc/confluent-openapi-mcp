@@ -15,6 +15,10 @@ This folder contains all the documentation for the Confluent OpenAPI MCP Server.
 - **[PROMETHEUS.md](PROMETHEUS.md)** - Prometheus metrics export and configuration
 - **[MONITORING_STACK.md](MONITORING_STACK.md)** - Complete monitoring stack with Grafana dashboards
 
+### Security & Protection
+
+- **[LLM_DETECTION.md](LLM_DETECTION.md)** - External LLM-based prompt injection detection setup
+
 ## 🚀 Quick Start Links
 
 - **Main README**: [../README.md](../README.md)

@@ -16,6 +16,10 @@ build:
 		echo "Copying prompts to build directory..."; \
 		cp -r ./prompts $(BUILD_DIR)/; \
 	fi
+	@if [ -d "./directives" ]; then \
+		echo "Copying directives to build directory..."; \
+		cp -r ./directives $(BUILD_DIR)/; \
+	fi
 
 # Build and restart MCP servers for VS Code
 build-mcp: build

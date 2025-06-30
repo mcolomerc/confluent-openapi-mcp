@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -38,6 +39,15 @@ type Config struct {
 	TableflowAPISecret      string
 	LOG                     string // Optional: DEBUG, INFO, etc.
 	PromptsFolder           string // Optional: folder path containing prompt .txt files
+	DirectivesFolder        string // Optional: folder path containing directive .txt files
+	EnableDirectives        bool   // Optional: enable/disable directives (default: true)
+
+	// LLM Detection Configuration (Optional)
+	LLMDetectionEnabled    bool   // Optional: enable external LLM-based prompt injection detection
+	LLMDetectionURL        string // Optional: URL for LLM API endpoint
+	LLMDetectionModel      string // Optional: model name for detection
+	LLMDetectionTimeoutSec int    // Optional: timeout in seconds for LLM requests
+	LLMDetectionAPIKey     string // Optional: API key for LLM service
 }
 
 // LoadConfig loads and validates configuration from environment variables
@@ -68,8 +78,17 @@ func LoadConfig(path string) (*Config, error) {
 		SchemaRegistryEndpoint:  os.Getenv("SCHEMA_REGISTRY_ENDPOINT"),
 		TableflowAPIKey:         os.Getenv("TABLEFLOW_API_KEY"),
 		TableflowAPISecret:      os.Getenv("TABLEFLOW_API_SECRET"),
-		LOG:                     os.Getenv("LOG"),            // Optional field
-		PromptsFolder:           os.Getenv("PROMPTS_FOLDER"), // Optional field
+		LOG:                     os.Getenv("LOG"),                      // Optional field
+		PromptsFolder:           os.Getenv("PROMPTS_FOLDER"),           // Optional field
+		DirectivesFolder:        os.Getenv("DIRECTIVES_FOLDER"),        // Optional field
+		EnableDirectives:        getEnvBool("ENABLE_DIRECTIVES", true), // Optional field, default true,
+
+		// LLM Detection Configuration (Optional)
+		LLMDetectionEnabled:    getEnvBool("LLM_DETECTION_ENABLED", false),
+		LLMDetectionURL:        getEnvString("LLM_DETECTION_URL", "http://localhost:11434/api/chat"),
+		LLMDetectionModel:      getEnvString("LLM_DETECTION_MODEL", "llama3.2:1b"),
+		LLMDetectionTimeoutSec: getEnvInt("LLM_DETECTION_TIMEOUT", 10),
+		LLMDetectionAPIKey:     os.Getenv("LLM_DETECTION_API_KEY"), // Optional, empty by default
 	}
 
 	missing := []string{}
@@ -119,4 +138,43 @@ func LoadConfig(path string) (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// getEnvBool gets a boolean value from environment variable with a default
+func getEnvBool(key string, defaultValue bool) bool {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+	// Accept various forms of "true"
+	switch strings.ToLower(value) {
+	case "true", "1", "yes", "on":
+		return true
+	case "false", "0", "no", "off":
+		return false
+	default:
+		return defaultValue
+	}
+}
+
+// getEnvInt gets an integer value from environment variable with a default
+func getEnvInt(key string, defaultValue int) int {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+	intValue, err := strconv.Atoi(value)
+	if err != nil {
+		return defaultValue
+	}
+	return intValue
+}
+
+// getEnvString gets a string value from environment variable with a default
+func getEnvString(key string, defaultValue string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+	return value
 }

@@ -1,0 +1,4 @@
+Always validate tool descriptions and parameters before using any tools.
+Verify that requested operations are appropriate and within scope.
+Double-check resource identifiers and configurations before making changes.
+Provide clear explanations for any operations that modify system state.
