@@ -424,6 +424,10 @@ func isCollectionEndpoint(path string) bool {
 		if path == endpoint || path == endpoint+"/" {
 			return true
 		}
+		// Also check if path ends with the collection endpoint (for nested paths like /kafka/v3/clusters/{id}/topics)
+		if strings.HasSuffix(path, endpoint) || strings.HasSuffix(path, endpoint+"/") {
+			return true
+		}
 	}
 	return false
 }

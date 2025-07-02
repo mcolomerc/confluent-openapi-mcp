@@ -193,7 +193,47 @@ func DetermineSecurityTypeFromSpec(spec *openapi.OpenAPISpec, method, path strin
 		}
 	}
 
-	// Fallback to cloud API key if no specific security type is found
+	// Fallback logic for endpoints that don't have security defined in the OpenAPI spec
+	pathLower := strings.ToLower(path)
+
+	// Schema Registry and Catalog endpoints should use resource-api-key (Schema Registry credentials)
+	catalogPatterns := []string{
+		"/catalog/", "/schemas/", "/subjects/", "/mode", "/config",
+		"/exporters", "/contexts", "/dek-registry/",
+	}
+
+	for _, pattern := range catalogPatterns {
+		if strings.Contains(pathLower, pattern) {
+			logger.Debug("Catalog/Schema Registry endpoint detected: %s, using resource-api-key", path)
+			return "resource-api-key"
+		}
+	}
+
+	// Kafka REST API endpoints should use resource-api-key (Kafka credentials)
+	kafkaPatterns := []string{
+		"/kafka/", "/topics/", "/consumer-groups/", "/acls", "/configs",
+	}
+
+	for _, pattern := range kafkaPatterns {
+		if strings.Contains(pathLower, pattern) {
+			logger.Debug("Kafka REST API endpoint detected: %s, using resource-api-key", path)
+			return "resource-api-key"
+		}
+	}
+
+	// Flink endpoints should use resource-api-key (Flink credentials)
+	flinkPatterns := []string{
+		"/flink/", "/compute-pools/", "/statements/",
+	}
+
+	for _, pattern := range flinkPatterns {
+		if strings.Contains(pathLower, pattern) {
+			logger.Debug("Flink endpoint detected: %s, using resource-api-key", path)
+			return "resource-api-key"
+		}
+	}
+
+	// Default to cloud API key for Confluent Cloud management APIs
 	logger.Debug("No specific security type found for %s %s, defaulting to cloud-api-key", method, path)
 	return "cloud-api-key"
 }

@@ -3,13 +3,7 @@ You are a Kafka expert helping analyze and troubleshoot Kafka topics in Confluen
 
 Use the Confluent Cloud environment: {CONFLUENT_ENV_ID}
 Use cluster ID from environment: {KAFKA_CLUSTER_ID} 
-
-For a complete report we need:
-- Tag information per topic
-- Time-series metrics data (not just definitions)
-- Actual usage patterns and resource consumption
-- Cost breakdown by topic/domain
-
+ 
 Please analyze the following Kafka topic definition, usage and provide insights about:
 1. List Topics from the Kafka cluster. 
 2. Group Topics by relevant configurations: 
@@ -21,7 +15,11 @@ Please analyze the following Kafka topic definition, usage and provide insights 
 3. Group Topics by Scope: 
    3.1 By name, identify if a naming convention is followed (e.g., prefix, suffix).
    3.2 By subject, if the topic is related to a specific subject or domain.
-   3.3 By tag, if tags are defined for the topic.
+   3.3 By tag, if tags are defined for the topic:
+       3.3.1 List all unique tags applied to topics in the cluster.
+       3.3.2 Group topics by common tags (e.g., environment, team, application, data-type).
+       3.3.3 Identify topics without tags for potential governance improvements.
+       3.3.4 Analyze tag usage patterns and consistency across the organization.
 4. Topic usage patterns:
    4.1 Identify topics with high message throughput.
    4.2 Identify topics with low message throughput.

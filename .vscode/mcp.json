@@ -9,7 +9,7 @@
             ],
             "cwd": "${workspaceFolder}",
             "env": {
-                "DISABLE_RESOURCE_DISCOVERY": "true",
+                "DISABLE_RESOURCE_DISCOVERY": "false",
                 "LOG": "DEBUG"
             }
         }
