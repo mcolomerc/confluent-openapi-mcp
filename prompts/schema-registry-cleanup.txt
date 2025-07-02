@@ -3,6 +3,9 @@
 ## Purpose
 This prompt replicates the functionality of Confluent's schema-deletion-tool to discover and safely delete unused schemas from Schema Registry. The tool identifies schemas that are no longer actively used by any topics across your Kafka clusters.
 
+Use the Confluent Cloud environment: {CONFLUENT_ENV_ID}
+Use the Schema Registry endpoint: {SCHEMA_REGISTRY_ENDPOINT}
+
 ## Overview
 The schema cleanup process involves:
 1. **Discovery**: Find all eligible subjects and schemas in Schema Registry

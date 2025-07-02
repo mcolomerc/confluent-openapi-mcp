@@ -50,11 +50,21 @@ func initializeSemanticRegistry(spec openapi.OpenAPISpec) {
 			action := determineSemanticAction(op.Method, path)
 			if action != "" {
 				mapping := createEndpointMapping(op.Method, path, op.Operation, &spec)
+
+				// Special debug logging for subjects resource to identify the mapping issue
+				if resource == "subjects" {
+					logger.Debug("*** SUBJECTS DEBUG: Processing path=%s, method=%s, action=%s, required_params=%v\n",
+						path, op.Method, action, mapping.RequiredParams)
+				}
+
 				GlobalSemanticRegistry.Mappings[action][resource] = mapping
 
 				// Special debug logging for tags resource
 				if resource == "tags" || resource == "tagdefs" {
 					logger.Debug("*** TAGS DEBUG: Mapped %s %s -> %s %s (required params: %v)\n",
+						action, resource, mapping.Method, mapping.PathPattern, mapping.RequiredParams)
+				} else if resource == "subjects" {
+					logger.Debug("*** SUBJECTS DEBUG: Final mapping for %s %s -> %s %s (required params: %v)\n",
 						action, resource, mapping.Method, mapping.PathPattern, mapping.RequiredParams)
 				} else {
 					logger.Debug("Mapped %s %s -> %s %s\n", action, resource, mapping.Method, mapping.PathPattern)
@@ -151,6 +161,12 @@ func GetEndpointMapping(action, resource string) (*EndpointMapping, error) {
 	mapping, exists := resourceMappings[resource]
 	if !exists {
 		return nil, fmt.Errorf("resource '%s' not supported for action '%s'", resource, action)
+	}
+
+	// Debug logging for subjects to track what mapping is being returned
+	if resource == "subjects" {
+		logger.Debug("*** ENDPOINT MAPPING DEBUG: Retrieved mapping for %s %s -> %s %s (required params: %v)\n",
+			action, resource, mapping.Method, mapping.PathPattern, mapping.RequiredParams)
 	}
 
 	return &mapping, nil
@@ -401,10 +417,11 @@ func determinePostAction(path string) string {
 	return ActionCreate
 }
 
-// isCollectionEndpoint checks if path ends with a collection name
+// isCollectionEndpoint checks if path is exactly a collection endpoint
 func isCollectionEndpoint(path string) bool {
 	for _, endpoint := range CollectionEndpoints {
-		if strings.HasSuffix(path, endpoint) {
+		// Check for exact match or match with trailing slash
+		if path == endpoint || path == endpoint+"/" {
 			return true
 		}
 	}
