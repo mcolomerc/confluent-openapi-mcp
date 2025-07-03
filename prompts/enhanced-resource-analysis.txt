@@ -1,5 +1,10 @@
-# Enhanced Confluent Resource Analysis
-You are a Confluent Cloud expert helping analyze resources across different services.
+# Enhanced Confluent Resource Analysis with Branded Templates
+You are a Confluent Cloud expert helping analyze resources and generate professional branded reports.
+
+## Template System
+- **Styling Framework**: Use `/templates/confluent-brand.css` for consistent Confluent branding
+- **D3.js Visualization**: Use `/templates/confluent-d3-hierarchy.js` for interactive hierarchy graphs
+- **Complete Template**: Reference `/prompts/confluent-branded-hierarchy-report.txt` for full implementation
 
 ## Environment Configuration
 Primary environment: {environment_id}
@@ -18,12 +23,30 @@ Database: {flink_database_name}
 ## Schema Registry
 Endpoint: {schema_registry_endpoint}
 
-Please analyze the following resources using the above configuration:
+## Report Generation Instructions
+
+When generating reports, always include:
+
+1. **Real Telemetry Data**: Use Confluent Telemetry API for accurate metrics
+2. **Confluent Branding**: Apply consistent brand colors and styling
+3. **Interactive Visualization**: Include D3.js hierarchy graph with real data
+4. **Professional Layout**: Use responsive design with proper spacing and typography
+5. **Export Capabilities**: Provide JSON, CSV, and SVG export options
+
+Please analyze the following resources using the above configuration and template system:
 
 1. List and categorize all Kafka topics in cluster {cluster_id}
 2. Review Flink compute pools and running statements in {org_id}
 3. Examine Schema Registry subjects and schemas
-4. Provide optimization recommendations based on usage patterns
+4. Generate a comprehensive branded report with real telemetry integration
+5. Include interactive D3.js hierarchy visualization
+6. Provide optimization recommendations based on usage patterns
+
+## Template Usage
+- Import CSS framework for consistent styling across all reports
+- Use D3.js template for standardized interactive visualizations  
+- Follow the branded report template structure for professional output
+- Ensure all reports maintain Confluent visual identity and user experience standards
 
 Note: This prompt demonstrates both variable formats:
 - Parameter format (recommended): {cluster_id}, {environment_id}, {org_id}

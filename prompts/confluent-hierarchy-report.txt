@@ -1,0 +1,293 @@
+## Confluent Infrastructure Hierarchy Report - Branded Interactive Template
+
+**Description:** Generate a comprehensive, branded, and interactive hierarchical report of the Confluent infrastructure with real-time telemetry data, D3.js visualization, and professional Confluent styling.
+
+**Environment Configuration:**
+- Target Environment: {CONFLUENT_ENV_ID}
+- Kafka Cluster: {KAFKA_CLUSTER_ID}
+- Schema Registry: {SCHEMA_REGISTRY_ENDPOINT}
+- Organization: {CONFLUENT_ORG_ID}
+
+## Template Features
+
+### 1. Confluent Brand Styling Framework
+Apply consistent Confluent brand colors and styling across all report elements:
+
+```css
+/* Confluent Brand Colors */
+:root {
+    --confluent-primary: #0073e6;
+    --confluent-primary-dark: #0066cc;
+    --confluent-secondary: #4c72ff;
+    --confluent-orange: #ff6b35;
+    --confluent-purple: #6f42c1;
+    --confluent-teal: #17a2b8;
+    --confluent-green: #28a745;
+    --confluent-yellow: #ffc107;
+    --confluent-red: #dc3545;
+    --confluent-dark: #1e2d3a;
+    --confluent-gray: #6c757d;
+    --confluent-light-gray: #f8f9fa;
+    --confluent-white: #ffffff;
+}
+
+/* Professional Typography */
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--confluent-dark);
+    line-height: 1.6;
+    background: linear-gradient(135deg, var(--confluent-primary), var(--confluent-secondary));
+}
+
+/* Card-based Layout */
+.stat-card {
+    background: var(--confluent-white);
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border: 2px solid var(--confluent-light-gray);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--confluent-primary), var(--confluent-secondary));
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+```
+
+### 2. Interactive D3.js Hierarchy Visualization
+Include full D3.js interactive tree visualization with:
+
+```javascript
+// Confluent Color Mapping
+const colors = {
+    organization: "#dc3545",
+    environment: "#ff6b35", 
+    kafka_cluster: "#28a745",
+    schema_registry: "#0073e6",
+    topic: "#6f42c1",
+    schema: "#17a2b8"
+};
+
+// Interactive Features
+- Click to expand/collapse nodes
+- Hover tooltips with real metrics
+- Dynamic node sizing based on telemetry data
+- Smooth animations and transitions
+- Export capabilities (SVG, PNG)
+```
+
+### 3. Real-Time Telemetry Integration
+Collect and display real telemetry data using the Confluent Telemetry API:
+
+#### Cluster Metrics
+```
+- Total partitions across all topics
+- ACL count and usage
+- Active connections
+- Throughput metrics (messages/sec, bytes/sec)
+- Storage utilization
+```
+
+#### Topic-Level Metrics
+```
+- Retained bytes per topic
+- Message count and rates
+- Consumer lag
+- Partition distribution
+- Replication factor status
+```
+
+#### Schema Registry Metrics
+```
+- Total subjects count
+- Schema versions and evolution
+- Compatibility settings
+- Usage patterns
+```
+
+### 4. Data Collection Requirements
+
+#### Environment Analysis
+```
+1. List all environments and identify the target: {CONFLUENT_ENV_ID}
+2. Get environment details (name, creation date, region)
+3. Identify all clusters within the environment
+4. Map cluster relationships and dependencies
+```
+
+#### Cluster Analysis
+```
+1. For each Kafka cluster in the environment:
+   - Get cluster details (ID, name, type, region)
+   - List all topics with configuration
+   - Collect real-time metrics via Telemetry API
+   - Analyze throughput patterns and trends
+```
+
+#### Schema Registry Analysis
+```
+1. Connect to Schema Registry endpoint: {SCHEMA_REGISTRY_ENDPOINT}
+2. List all subjects and their schemas
+3. Analyze schema evolution and compatibility
+4. Map schema-to-topic relationships
+```
+
+#### Telemetry Data Collection
+```
+1. Use Confluent Telemetry API to get real metrics:
+   - kafka_server_retained_bytes (by topic)
+   - kafka_server_partition_count
+   - kafka_server_active_connection_count
+   - kafka_server_acl_count
+2. Process and aggregate data for visualization
+3. Calculate derived metrics (utilization, trends)
+```
+
+### 5. Report Structure Template
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confluent Infrastructure Hierarchy Report</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        /* Include Confluent brand styling framework */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header with Confluent branding -->
+        <h1>🏗️ Confluent Infrastructure Hierarchy Report</h1>
+        
+        <!-- Environment summary -->
+        <div class="report-header">
+            <h2>Live Environment Report with Real Telemetry</h2>
+            <p>Environment: <strong>{CONFLUENT_ENV_ID}</strong> | Generated: <span id="timestamp"></span></p>
+        </div>
+
+        <div class="content-wrapper">
+            <!-- Key metrics grid -->
+            <div class="stats-grid">
+                <!-- Real-time metric cards -->
+            </div>
+
+            <!-- Interactive D3.js hierarchy -->
+            <div class="hierarchy-section">
+                <h2>🏗️ Interactive Infrastructure Hierarchy</h2>
+                <div class="controls">
+                    <button onclick="expandAll()">Expand All</button>
+                    <button onclick="collapseAll()">Collapse All</button>
+                    <button onclick="refreshData()">Refresh Data</button>
+                    <button onclick="exportSVG()">Export SVG</button>
+                </div>
+                <div id="hierarchy-chart"></div>
+                <div class="legend">
+                    <!-- Color-coded legend -->
+                </div>
+            </div>
+
+            <!-- Detailed telemetry sections -->
+            <div class="telemetry-section">
+                <!-- Real-time cluster metrics -->
+            </div>
+
+            <!-- Topic analysis groups -->
+            <div class="topic-groups">
+                <!-- Categorized topic lists with metrics -->
+            </div>
+
+            <!-- Schema Registry details -->
+            <div class="schema-section">
+                <!-- Schema subjects and evolution -->
+            </div>
+
+            <!-- Export capabilities -->
+            <div class="export-section">
+                <h3>📥 Export Real Data</h3>
+                <button onclick="exportTelemetryData()">Export Telemetry JSON</button>
+                <button onclick="exportSummaryReport()">Export Summary CSV</button>
+                <button onclick="window.print()">Print Report</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize timestamp
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+        
+        // D3.js hierarchy implementation
+        function initializeHierarchyGraph() {
+            // Full D3.js interactive tree with real data
+        }
+        
+        // Export functions
+        function exportTelemetryData() {
+            // Export real telemetry data as JSON
+        }
+        
+        function exportSummaryReport() {
+            // Export summary as CSV
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeHierarchyGraph();
+        });
+    </script>
+</body>
+</html>
+```
+
+### 6. Usage Instructions
+
+#### For Report Generation:
+1. **Environment Setup**: Configure target environment ID in {CONFLUENT_ENV_ID}
+2. **Data Collection**: Use MCP tools to gather real-time telemetry data
+3. **Visualization**: Build interactive D3.js hierarchy with actual metrics
+4. **Styling**: Apply Confluent brand colors and professional layout
+5. **Export**: Provide multiple export formats (HTML, JSON, CSV, SVG)
+
+#### Interactive Features:
+- **Real-time Updates**: Refresh telemetry data every 30 seconds
+- **Drill-down Navigation**: Click nodes to explore hierarchy
+- **Metric Tooltips**: Hover for detailed performance data
+- **Export Capabilities**: Multiple format options for sharing
+- **Print-friendly**: Professional layout for documentation
+
+### 7. Best Practices
+
+#### Data Accuracy:
+- Always use real telemetry data from Confluent APIs
+- Validate metrics against actual cluster performance
+- Include data freshness timestamps
+- Handle edge cases (empty topics, inactive clusters)
+
+#### Performance:
+- Lazy-load large datasets
+- Implement pagination for extensive topic lists
+- Cache frequently accessed metrics
+- Optimize D3.js rendering for large hierarchies
+
+#### User Experience:
+- Provide clear loading indicators
+- Include helpful tooltips and legends
+- Ensure responsive design for mobile devices
+- Maintain consistent Confluent branding throughout
+
+This template provides a complete framework for generating professional, interactive, and branded Confluent infrastructure reports with real telemetry data and modern visualization capabilities.
