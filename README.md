@@ -1,4 +1,12 @@
-# Confluent OpenAPI MCP Server
+# Co## 📖 Quick Navigation
+
+- 🚀 **[Building and Running](#building-and-running)** - Get started quickly
+- 🔧 **[Configuration](#configuration)** - Environment setup
+- 🔒 **[Security & Guardrails](#-security--guardrails)** - Prompt injection protection
+- 📝 **[Built-in Prompts](#-built-in-prompts)** - Specialized prompts for common operations
+- 📚 **[Documentation](#-documentation)** - Complete guides and references
+- 🐳 **[Docker Deployment](docs/DOCKER.md)** - Production deployment
+- 📊 **[Monitoring](docs/MONITORING_STACK.md)** - Observability stackOpenAPI MCP Server
 
 A Model Context Protocol (MCP) server that dynamically generates semantic tools from the Confluent Cloud OpenAPI specifications. This server provides a bridge between MCP clients and Confluent Cloud APIs, enabling AI agents to interact with Kafka clusters, Flink compute pools, Schema Registry, TableFlow, and telemetry services through natural language interfaces.
 
@@ -6,8 +14,9 @@ A Model Context Protocol (MCP) server that dynamically generates semantic tools 
 
 - 🚀 **[Building and Running](#building-and-running)** - Get started quickly
 - 🔧 **[Configuration](#configuration)** - Environment setup
-- � **[Security & Guardrails](#security--guardrails)** - Prompt injection protection
-- �📚 **[Documentation](#-documentation)** - Complete guides and references
+- 🔒 **[Security & Guardrails](#-security--guardrails)** - Prompt injection protection
+- 📝 **[Built-in Prompts](#-built-in-prompts)** - Specialized prompts for common operations
+- 📚 **[Documentation](#-documentation)** - Complete guides and references
 - 🐳 **[Docker Deployment](docs/DOCKER.md)** - Production deployment
 - 📊 **[Monitoring](docs/MONITORING_STACK.md)** - Observability stack
 
@@ -220,7 +229,7 @@ The server requires multiple environment variables for proper operation. Create 
 
 - **`LOG`**: Log level (`DEBUG`, `INFO`, `WARN`, `ERROR`)
   - Default: `INFO`
-- **`PROMPTS_FOLDER`**: Custom path to prompts folder (see [Prompt Support](#prompt-support) for details)
+- **`PROMPTS_FOLDER`**: Custom path to prompts folder (see [Built-in Prompts](#-built-in-prompts) for details)
   - Default: Automatically uses `<executable-directory>/prompts` or `./prompts`
   - Example: `/path/to/custom/prompts`
 - **`OPENAPI_SPEC_URL`**: Custom OpenAPI specification URL or path
@@ -303,39 +312,97 @@ The system automatically identifies and warns about destructive operations:
 - **Privilege modifications** - Warns when creating admin-level access
 
 Example warning:
-```
+
+```text
 ⚠️  DESTRUCTIVE OPERATION: This will permanently delete the topic. This action cannot be undone.
 ```
 
 ## 📝 Built-in Prompts
 
-The MCP server includes several specialized prompts for common Confluent Cloud operations. These prompts provide step-by-step guidance for complex workflows:
+The MCP server includes several specialized prompts for common Confluent Cloud operations. These prompts provide step-by-step guidance for complex workflows and support automatic variable substitution from your configuration.
 
 ### Available Prompts
 
 - **schema-registry-cleanup**: Complete workflow for discovering and safely deleting unused schemas from Schema Registry. Replicates the functionality of Confluent's schema-deletion-tool with safety features and confirmation steps.
 
-- **enhanced-resource-analysis**: Comprehensive analysis of your Confluent Cloud resources with optimization recommendations.
-
-- **environment-setup**: Step-by-step guide for setting up new Confluent Cloud environments with best practices.
+- **enhanced-resource-analysis**: Comprehensive analysis of your Confluent Cloud resources with optimization recommendations, including branded templates and D3.js visualizations.
 
 - **kafka-cluster-report-usage**: Detailed reporting on Kafka cluster usage, performance metrics, and capacity planning.
 
-- **schema-registry-guide**: Complete guide for Schema Registry operations, schema evolution, and best practices.
+- **confluent-hierarchy-report**: Generate comprehensive, branded, and interactive hierarchical reports of the Confluent infrastructure with real-time telemetry data.
+
+- **environment-setup**: Step-by-step guide for setting up new Confluent Cloud environments with best practices. *(Available in binary distribution)*
+
+- **schema-registry-guide**: Complete guide for Schema Registry operations, schema evolution, and best practices. *(Available in binary distribution)*
 
 ### Using Prompts
 
-Access prompts through the MCP client:
+Access prompts through the MCP client using the correct tool names:
 
-```
+```bash
 # List all available prompts
-mcp_prompts
+prompts
 
 # Get a specific prompt
-mcp_get_prompt schema-registry-cleanup
+get_prompt schema-registry-cleanup
 ```
 
-Prompts are also automatically loaded from the `prompts/` folder when the server starts.
+### Prompt Variables
+
+All prompts support automatic variable substitution from your environment configuration:
+
+**Configuration Variables:**
+
+- `{environment_id}` or `{CONFLUENT_ENV_ID}` - Your Confluent environment ID
+- `{cluster_id}` or `{KAFKA_CLUSTER_ID}` - Your Kafka cluster ID
+- `{compute_pool_id}` or `{FLINK_COMPUTE_POOL_ID}` - Your Flink compute pool ID
+- `{org_id}` or `{FLINK_ORG_ID}` - Your Flink organization ID
+- `{schema_registry_endpoint}` or `{SCHEMA_REGISTRY_ENDPOINT}` - Schema Registry endpoint
+
+**Example Usage:**
+
+```markdown
+# In a prompt file
+Analyze topics in cluster {cluster_id} within environment {environment_id}.
+```
+
+### Prompt Directives
+
+Prompts automatically include system directives for:
+
+- **Role definition**: Establishes expertise in Confluent Cloud operations
+- **Security guardrails**: Protection against prompt injection and manipulation
+- **Operational safety**: Validation requirements for destructive operations
+
+### Custom Prompts
+
+You can add custom prompts by:
+
+1. **Creating prompt files**: Place `.txt` files in the `prompts/` folder
+2. **Using proper format**: First line starting with `#` becomes the description
+3. **Including variables**: Use `{variable_name}` format for substitution
+4. **Building**: Run `make build` to copy prompts to the binary directory
+
+**Example custom prompt:**
+
+```markdown
+# My Custom Analysis
+Analyze the performance of cluster {cluster_id} in environment {environment_id}.
+```
+
+### Prompt Configuration
+
+Configure prompts using environment variables:
+
+- **`PROMPTS_FOLDER`**: Custom path to prompts folder
+  - Default: `<executable-directory>/prompts` or `./prompts`
+  - Example: `PROMPTS_FOLDER=/path/to/custom/prompts`
+
+- **`ENABLE_DIRECTIVES`**: Enable/disable prompt directives
+  - Default: `true`
+  - Example: `ENABLE_DIRECTIVES=false`
+
+For complete variable reference, see **[Prompt Variables Guide](docs/PROMPT_VARIABLES.md)**.
 
 ## 📚 Documentation
 
@@ -348,7 +415,7 @@ Prompts are also automatically loaded from the `prompts/` folder when the server
 ### Monitoring & Observability
 
 - **[Prometheus Integration](docs/PROMETHEUS.md)** - Prometheus metrics export and configuration
-- **[Monitoring Stack](docs/MONITORING_STACK.md)** - Complete monitoring stack with Grafana dashboards 
+- **[Monitoring Stack](docs/MONITORING_STACK.md)** - Complete monitoring stack with Grafana dashboards
 
 ### Quick Links
 
