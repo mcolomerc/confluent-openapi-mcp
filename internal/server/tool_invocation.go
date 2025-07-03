@@ -32,16 +32,18 @@ func (s *MCPServer) InvokeTool(req InvokeRequest) InvokeResponse {
 		return InvokeResponse{Error: "Tool not found"}
 	}
 
-	// Apply input guardrails - validate tool parameters for injection attempts
+	// Apply input guardrails - validate tool parameters for injection attempts and loop detection
 	if s.guardrails != nil {
-		validationResult := s.guardrails.ValidateToolInput(req.Tool, req.Arguments)
-		if validationResult.Detected {
-			logger.Debug("Input injection detected in tool %s: patterns=%v", req.Tool, validationResult.Patterns)
-			errorMsg := "Input validation failed: potential malicious input detected"
-			if validationResult.HighSeverity {
-				errorMsg = "Input validation failed: high-risk injection pattern detected"
-			}
-			return InvokeResponse{Error: errorMsg}
+		guardrailsResult := s.guardrails.ValidateToolInput(req.Tool, req.Arguments)
+		if guardrailsResult.Blocked {
+			logger.Debug("Tool call blocked by guardrails: %s", guardrailsResult.BlockingReason)
+			return InvokeResponse{Error: guardrailsResult.BlockingReason}
+		}
+
+		// Log additional info for monitoring
+		if guardrailsResult.LoopResult.ConsecutiveCalls > 1 {
+			logger.Debug("Consecutive calls detected: %s called %d times (max: %d)",
+				req.Tool, guardrailsResult.LoopResult.ConsecutiveCalls, guardrailsResult.LoopResult.MaxAllowed)
 		}
 	}
 

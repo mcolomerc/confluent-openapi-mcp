@@ -80,7 +80,8 @@ func (m *Manager) CreateResourceReadHandler(resourceType string) func(context.Co
 // getResourceInstancesOfType gets all instances of a specific resource type
 func (m *Manager) getResourceInstancesOfType(resourceType string) ([]mcp.Resource, error) {
 	// Skip resource discovery for certain resource types that don't support general listing
-	skipDiscovery := []string{"tags", "businessmetadatadefs", "tagdefs"} // Add problematic resources
+	// or that cause discovery loops
+	skipDiscovery := []string{"tags", "businessmetadatadefs", "tagdefs", "environments", "costs"} // Add problematic resources
 	for _, skip := range skipDiscovery {
 		if resourceType == skip {
 			fmt.Fprintf(os.Stderr, "Skipping discovery for %s (requires specific entity parameters)\n", resourceType)

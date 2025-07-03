@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"mcolomerc/mcp-server/internal/config"
 	"mcolomerc/mcp-server/internal/guardrails"
-	"mcolomerc/mcp-server/internal/logger"
 	"mcolomerc/mcp-server/internal/monitoring"
 	"mcolomerc/mcp-server/internal/openapi"
 	"mcolomerc/mcp-server/internal/prompts"
@@ -27,10 +26,10 @@ type MCPServer struct {
 	spec            *openapi.OpenAPISpec
 	telemetrySpec   *openapi.OpenAPISpec
 	promptManager   *prompts.PromptManager
-	mcpServer       *server.MCPServer              // Core MCP server from library
-	resourceManager *resource.Manager              // Resource management
-	monitor         *monitoring.Monitor            // Resource monitoring
-	guardrails      *guardrails.InjectionDetection // Input guardrails
+	mcpServer       *server.MCPServer               // Core MCP server from library
+	resourceManager *resource.Manager               // Resource management
+	monitor         *monitoring.Monitor             // Resource monitoring
+	guardrails      *guardrails.CompositeGuardrails // Input guardrails (injection + loop detection)
 }
 
 // NewCompositeServer creates an MCPServer with provided config, main spec, telemetry spec and semanticTools
@@ -58,29 +57,8 @@ func NewCompositeServer(cfg *config.Config, spec *openapi.OpenAPISpec, telemetry
 		server.WithLogging(),
 	)
 
-	// Create injection detection with LLM configuration
-	injectionDetector := guardrails.NewInjectionDetection()
-
-	// Configure LLM detection if enabled
-	if cfg.LLMDetectionEnabled {
-		logger.Debug("Configuring LLM detection with URL: %s, Model: %s, Timeout: %ds\n",
-			cfg.LLMDetectionURL, cfg.LLMDetectionModel, cfg.LLMDetectionTimeoutSec)
-
-		llmConfig := guardrails.ExternalLLMConfig{
-			Enabled:    cfg.LLMDetectionEnabled,
-			URL:        cfg.LLMDetectionURL,
-			Model:      cfg.LLMDetectionModel,
-			TimeoutSec: cfg.LLMDetectionTimeoutSec,
-			APIKey:     cfg.LLMDetectionAPIKey,
-		}
-		injectionDetector.ConfigureLLM(llmConfig)
-
-		fmt.Fprintf(os.Stderr, "LLM-based prompt injection detection enabled: %s (model: %s)\n",
-			cfg.LLMDetectionURL, cfg.LLMDetectionModel)
-		logger.Debug("LLM detection configuration completed successfully\n")
-	} else {
-		logger.Debug("LLM detection is disabled (LLM_DETECTION_ENABLED=false)\n")
-	}
+	// Create composite guardrails (injection + loop detection)
+	compositeGuardrails := guardrails.NewCompositeGuardrails(cfg)
 
 	// Create our composite server
 	compositeServer := &MCPServer{
@@ -90,7 +68,7 @@ func NewCompositeServer(cfg *config.Config, spec *openapi.OpenAPISpec, telemetry
 		telemetrySpec: telemetrySpec,
 		promptManager: promptManager,
 		mcpServer:     mcpServer,
-		guardrails:    injectionDetector,
+		guardrails:    compositeGuardrails,
 	}
 
 	// Create the resource manager
