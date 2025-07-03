@@ -1,0 +1,586 @@
+# Confluent Cost Analysis Report - Branded Interactive Template
+
+**Description:** Generate a comprehensive, branded, and interactive cost analysis report of Confluent Cloud infrastructure with real-time cost data, D3.js visualization, and professional Confluent styling focused on the previous week's cost breakdown.
+
+**Environment Configuration:**
+- Target Environment: {CONFLUENT_ENV_ID}
+- Kafka Cluster: {KAFKA_CLUSTER_ID}
+- Schema Registry: {SCHEMA_REGISTRY_ENDPOINT}
+- Organization: {CONFLUENT_ORG_ID}
+- Cost Period: Previous 7 days (rolling week)
+
+## Template Features
+
+### 1. Confluent Brand Styling Framework
+Apply consistent Confluent brand colors and styling across all cost report elements:
+
+```css
+/* Confluent Brand Colors for Cost Analysis */
+:root {
+    --confluent-primary: #0073e6;
+    --confluent-primary-dark: #0066cc;
+    --confluent-secondary: #4c72ff;
+    --confluent-orange: #ff6b35;
+    --confluent-purple: #6f42c1;
+    --confluent-teal: #17a2b8;
+    --confluent-green: #28a745;
+    --confluent-yellow: #ffc107;
+    --confluent-red: #dc3545;
+    --confluent-dark: #1e2d3a;
+    --confluent-gray: #6c757d;
+    --confluent-light-gray: #f8f9fa;
+    --confluent-white: #ffffff;
+    
+    /* Cost-specific colors */
+    --cost-high: #dc3545;
+    --cost-medium: #ffc107;
+    --cost-low: #28a745;
+    --cost-trend-up: #ff6b35;
+    --cost-trend-down: #28a745;
+}
+
+/* Professional Typography */
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--confluent-dark);
+    line-height: 1.6;
+    background: linear-gradient(135deg, var(--confluent-primary), var(--confluent-secondary));
+}
+
+/* Cost Card Styling */
+.cost-card {
+    background: var(--confluent-white);
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border: 2px solid var(--confluent-light-gray);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.cost-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--confluent-primary), var(--confluent-secondary));
+}
+
+.cost-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+.cost-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--confluent-primary);
+}
+
+.cost-trend {
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.cost-trend.up {
+    color: var(--cost-trend-up);
+}
+
+.cost-trend.down {
+    color: var(--cost-trend-down);
+}
+
+/* Cost Category Colors */
+.cost-category-kafka { border-left: 4px solid var(--confluent-green); }
+.cost-category-schema { border-left: 4px solid var(--confluent-primary); }
+.cost-category-flink { border-left: 4px solid var(--confluent-purple); }
+.cost-category-connect { border-left: 4px solid var(--confluent-orange); }
+.cost-category-network { border-left: 4px solid var(--confluent-teal); }
+.cost-category-storage { border-left: 4px solid var(--confluent-yellow); }
+```
+
+### 2. Interactive D3.js Cost Visualization
+Include multiple cost visualization types with D3.js:
+
+```javascript
+// Cost Category Color Mapping
+const costColors = {
+    kafka: "#28a745",
+    schema_registry: "#0073e6",
+    flink: "#6f42c1",
+    connect: "#ff6b35",
+    network: "#17a2b8",
+    storage: "#ffc107",
+    other: "#6c757d"
+};
+
+// Chart Types Available:
+// 1. Pie Chart - Cost breakdown by resource type
+// 2. Time Series - Daily costs over the previous week
+// 3. Treemap - Hierarchical cost view by environment/cluster/resource
+// 4. Donut Chart - Cost distribution with center total
+// 5. Bar Chart - Top cost contributors
+// 6. Area Chart - Cumulative cost trends
+
+// Interactive Features
+- Click to drill down into cost categories
+- Hover tooltips with detailed cost information
+- Dynamic filtering by date range
+- Export capabilities (SVG, PNG, CSV)
+- Cost threshold alerts and highlighting
+```
+
+### 3. Cost Data Collection Requirements
+
+#### Previous Week Cost Analysis
+```
+1. Query Confluent Cost API for the previous 7 days
+2. Aggregate costs by:
+   - Resource type (Kafka, Schema Registry, Flink, Connect)
+   - Environment and cluster
+   - Daily breakdown
+   - Usage patterns
+3. Calculate cost trends and percentage changes
+4. Identify top cost drivers and anomalies
+```
+
+#### Cost Breakdown Categories
+```
+- Kafka Cluster Costs:
+  - Compute costs (CKU hours)
+  - Storage costs (GB-hours)
+  - Network ingress/egress
+  - Partition fees
+  
+- Schema Registry Costs:
+  - Schema operations
+  - Storage fees
+  - API calls
+  
+- Flink Costs:
+  - Compute pool usage (CFU hours)
+  - Job execution time
+  - Checkpointing storage
+  
+- Connect Costs:
+  - Connector runtime
+  - Throughput charges
+  - Task execution
+  
+- Network Costs:
+  - Data transfer
+  - VPC peering
+  - Private links
+```
+
+### 4. Cost Metrics and KPIs
+
+#### Key Cost Metrics
+```
+- Total cost for previous week
+- Average daily cost
+- Cost per resource type
+- Cost per environment/cluster
+- Cost trend percentage (week-over-week)
+- Cost efficiency ratios
+- Top 10 cost contributors
+- Cost anomaly detection
+```
+
+#### Cost Efficiency Calculations
+```
+- Cost per message processed
+- Cost per GB stored
+- Cost per active connection
+- Cost per topic
+- Cost per schema operation
+- Utilization vs cost ratio
+```
+
+### 5. Report Structure Template
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confluent Cost Analysis Report</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        /* Include Confluent brand styling framework */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header with Confluent branding -->
+        <h1>💰 Confluent Cost Analysis Report</h1>
+        
+        <!-- Cost summary header -->
+        <div class="report-header">
+            <h2>Previous Week Cost Breakdown</h2>
+            <p>Environment: <strong>{CONFLUENT_ENV_ID}</strong> | Period: <span id="cost-period"></span> | Generated: <span id="timestamp"></span></p>
+        </div>
+
+        <div class="content-wrapper">
+            <!-- Key cost metrics grid -->
+            <div class="cost-summary-grid">
+                <div class="cost-card">
+                    <h3>Total Cost (7 days)</h3>
+                    <div class="cost-value" id="total-cost">$0.00</div>
+                    <div class="cost-trend" id="total-trend">
+                        <span class="trend-icon">↗</span>
+                        <span class="trend-value">+0.0%</span>
+                    </div>
+                </div>
+                
+                <div class="cost-card">
+                    <h3>Average Daily Cost</h3>
+                    <div class="cost-value" id="avg-daily-cost">$0.00</div>
+                    <div class="cost-trend" id="daily-trend">
+                        <span class="trend-icon">→</span>
+                        <span class="trend-value">Stable</span>
+                    </div>
+                </div>
+                
+                <div class="cost-card">
+                    <h3>Top Cost Driver</h3>
+                    <div class="cost-value" id="top-driver">Kafka</div>
+                    <div class="cost-trend" id="driver-percentage">
+                        <span class="trend-value">0.0%</span>
+                    </div>
+                </div>
+                
+                <div class="cost-card">
+                    <h3>Cost Efficiency</h3>
+                    <div class="cost-value" id="efficiency-score">Good</div>
+                    <div class="cost-trend" id="efficiency-trend">
+                        <span class="trend-icon">↗</span>
+                        <span class="trend-value">Improving</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive cost breakdown charts -->
+            <div class="charts-section">
+                <h2>💹 Cost Breakdown Visualizations</h2>
+                
+                <!-- Resource type pie chart -->
+                <div class="chart-container">
+                    <h3>Cost by Resource Type</h3>
+                    <div class="chart-controls">
+                        <button onclick="toggleChartType('pie')">Pie Chart</button>
+                        <button onclick="toggleChartType('donut')">Donut Chart</button>
+                        <button onclick="toggleChartType('bar')">Bar Chart</button>
+                    </div>
+                    <div id="resource-cost-chart"></div>
+                </div>
+                
+                <!-- Daily cost trend -->
+                <div class="chart-container">
+                    <h3>Daily Cost Trend (Previous Week)</h3>
+                    <div class="chart-controls">
+                        <button onclick="toggleTrendType('line')">Line Chart</button>
+                        <button onclick="toggleTrendType('area')">Area Chart</button>
+                        <button onclick="toggleTrendType('bar')">Bar Chart</button>
+                    </div>
+                    <div id="daily-cost-trend"></div>
+                </div>
+                
+                <!-- Cost treemap -->
+                <div class="chart-container">
+                    <h3>Hierarchical Cost View</h3>
+                    <div class="chart-controls">
+                        <button onclick="refreshTreemap()">Refresh</button>
+                        <button onclick="exportTreemap()">Export</button>
+                    </div>
+                    <div id="cost-treemap"></div>
+                </div>
+            </div>
+
+            <!-- Detailed cost tables -->
+            <div class="cost-tables-section">
+                <h2>📊 Detailed Cost Breakdown</h2>
+                
+                <!-- Top cost contributors -->
+                <div class="table-container">
+                    <h3>Top 10 Cost Contributors</h3>
+                    <table id="top-contributors-table" class="cost-table">
+                        <thead>
+                            <tr>
+                                <th>Resource</th>
+                                <th>Type</th>
+                                <th>Cost (7 days)</th>
+                                <th>% of Total</th>
+                                <th>Trend</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contributors-tbody">
+                            <!-- Dynamic content -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Cost by environment -->
+                <div class="table-container">
+                    <h3>Cost by Environment</h3>
+                    <table id="env-costs-table" class="cost-table">
+                        <thead>
+                            <tr>
+                                <th>Environment</th>
+                                <th>Cost (7 days)</th>
+                                <th>Daily Average</th>
+                                <th>Resources</th>
+                                <th>Change</th>
+                            </tr>
+                        </thead>
+                        <tbody id="env-costs-tbody">
+                            <!-- Dynamic content -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Cost optimization recommendations -->
+            <div class="optimization-section">
+                <h2>🎯 Cost Optimization Recommendations</h2>
+                <div class="recommendations-grid">
+                    <div class="recommendation-card">
+                        <h4>🔍 Identified Opportunities</h4>
+                        <ul id="cost-opportunities">
+                            <!-- Dynamic recommendations -->
+                        </ul>
+                    </div>
+                    
+                    <div class="recommendation-card">
+                        <h4>⚡ Quick Wins</h4>
+                        <ul id="quick-wins">
+                            <!-- Dynamic recommendations -->
+                        </ul>
+                    </div>
+                    
+                    <div class="recommendation-card">
+                        <h4>📈 Trend Alerts</h4>
+                        <ul id="trend-alerts">
+                            <!-- Dynamic alerts -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Export capabilities -->
+            <div class="export-section">
+                <h3>📥 Export Cost Data</h3>
+                <button onclick="exportCostData()">Export Cost JSON</button>
+                <button onclick="exportCostCSV()">Export Cost CSV</button>
+                <button onclick="exportCostPDF()">Export PDF Report</button>
+                <button onclick="window.print()">Print Report</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize timestamp and cost period
+        const now = new Date();
+        const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+        document.getElementById('timestamp').textContent = now.toLocaleString();
+        document.getElementById('cost-period').textContent = 
+            `${weekAgo.toLocaleDateString()} - ${now.toLocaleDateString()}`;
+        
+        // Cost data structure
+        let costData = {
+            totalCost: 0,
+            dailyCosts: [],
+            resourceBreakdown: {},
+            topContributors: [],
+            trends: {},
+            recommendations: []
+        };
+        
+        // D3.js chart implementations
+        function initializeCostCharts() {
+            createResourceCostChart();
+            createDailyCostTrend();
+            createCostTreemap();
+        }
+        
+        function createResourceCostChart() {
+            // D3.js pie/donut chart for resource cost breakdown
+            const width = 400;
+            const height = 400;
+            const radius = Math.min(width, height) / 2;
+            
+            const svg = d3.select("#resource-cost-chart")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height);
+                
+            const g = svg.append("g")
+                .attr("transform", `translate(${width/2}, ${height/2})`);
+                
+            // Implementation continues...
+        }
+        
+        function createDailyCostTrend() {
+            // D3.js line/area chart for daily cost trends
+            const margin = {top: 20, right: 30, bottom: 40, left: 50};
+            const width = 800 - margin.left - margin.right;
+            const height = 400 - margin.top - margin.bottom;
+            
+            const svg = d3.select("#daily-cost-trend")
+                .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom);
+                
+            // Implementation continues...
+        }
+        
+        function createCostTreemap() {
+            // D3.js treemap for hierarchical cost view
+            const width = 800;
+            const height = 500;
+            
+            const svg = d3.select("#cost-treemap")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height);
+                
+            // Implementation continues...
+        }
+        
+        // Cost analysis functions
+        function analyzeCostTrends() {
+            // Calculate week-over-week changes
+            // Identify cost spikes and anomalies
+            // Generate optimization recommendations
+        }
+        
+        function generateRecommendations() {
+            // Analyze cost patterns and generate actionable recommendations
+            const recommendations = [];
+            
+            // Example recommendations based on cost analysis
+            if (costData.resourceBreakdown.kafka > 0.6) {
+                recommendations.push("Consider optimizing Kafka cluster sizing");
+            }
+            
+            return recommendations;
+        }
+        
+        // Export functions
+        function exportCostData() {
+            const data = JSON.stringify(costData, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `confluent-cost-analysis-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        }
+        
+        function exportCostCSV() {
+            // Convert cost data to CSV format
+            let csv = "Resource,Type,Cost,Percentage,Trend\n";
+            // Add data rows...
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `confluent-cost-breakdown-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCostCharts();
+            analyzeCostTrends();
+        });
+    </script>
+</body>
+</html>
+```
+
+### 6. Cost Data Collection Implementation
+
+#### Using Confluent Cost API
+```
+1. Set up cost period (previous 7 days)
+2. Query cost data endpoints:
+   - /v1/costs/hourly-cost-data
+   - /v1/costs/daily-cost-data
+   - /v1/costs/cost-breakdown
+3. Aggregate and process cost data
+4. Calculate trends and efficiency metrics
+```
+
+#### Cost Analysis Steps
+```
+1. Collect Raw Cost Data:
+   - Query Confluent billing API for the previous week
+   - Filter by environment ID: {CONFLUENT_ENV_ID}
+   - Group by resource type and date
+   
+2. Process Cost Metrics:
+   - Calculate daily totals
+   - Identify resource type contributions
+   - Compute week-over-week changes
+   - Flag cost anomalies
+   
+3. Generate Insights:
+   - Top cost contributors
+   - Cost efficiency ratios
+   - Optimization opportunities
+   - Trend analysis
+```
+
+### 7. Usage Instructions
+
+#### For Cost Report Generation:
+1. **Environment Setup**: Configure target environment ID in {CONFLUENT_ENV_ID}
+2. **Data Collection**: Query Confluent Cost API for previous week's data
+3. **Analysis**: Process cost data to identify patterns and trends
+4. **Visualization**: Create interactive D3.js charts with real cost data
+5. **Recommendations**: Generate actionable cost optimization suggestions
+6. **Export**: Provide multiple export formats (JSON, CSV, PDF)
+
+#### Interactive Features:
+- **Real-time Cost Updates**: Refresh cost data every hour
+- **Drill-down Analysis**: Click chart elements to explore cost details
+- **Cost Alerts**: Highlight unusual cost patterns or spikes
+- **Trend Analysis**: Compare costs across different time periods
+- **Optimization Tracking**: Monitor cost reduction opportunities
+
+### 8. Best Practices
+
+#### Cost Data Accuracy:
+- Always use official Confluent billing data
+- Validate cost calculations against billing statements
+- Include currency and timezone information
+- Handle partial data and edge cases
+
+#### Performance Optimization:
+- Cache cost data to reduce API calls
+- Implement efficient data aggregation
+- Use pagination for large datasets
+- Optimize chart rendering for large cost datasets
+
+#### Cost Analysis Guidelines:
+- Focus on actionable insights over raw data
+- Provide clear cost attribution by resource
+- Include both absolute and relative cost metrics
+- Highlight cost optimization opportunities
+
+#### User Experience:
+- Provide clear cost breakdowns and explanations
+- Include helpful tooltips with cost context
+- Ensure responsive design for mobile access
+- Maintain professional financial reporting standards
+
+This template provides a comprehensive framework for generating professional, interactive, and branded Confluent cost analysis reports with real billing data and actionable optimization recommendations.
